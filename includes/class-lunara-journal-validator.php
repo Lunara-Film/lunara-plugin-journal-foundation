@@ -74,8 +74,8 @@ final class Lunara_Journal_Validator {
             }
         }
 
-        if ( ! preg_match( '/^[\x09\x0A\x0D\x20-\x7E]*$/', (string) $post->post_content ) ) {
-            $warnings[] = 'Content contains non-ASCII characters. Review before publishing.';
+        if ( preg_match( '/\x{FFFD}|[\x{0080}-\x{009F}]|â€|Ã[\x{0080}-\x{00BF}]/u', (string) $post->post_content ) ) {
+            $warnings[] = 'Content contains damaged characters (mojibake). Re-paste it from the source.';
         }
 
         return array(

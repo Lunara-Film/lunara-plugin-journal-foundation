@@ -7,6 +7,9 @@
 
 define( 'ABSPATH', __DIR__ . DIRECTORY_SEPARATOR );
 define( 'LUNARA_IFTTT_WEBHOOK_KEY', 'runtime-test-webhook-key' );
+// WordPress slashes before a meta save and unslashes inside it; with this stub's
+// plain meta store the pair is the identity.
+if ( ! function_exists( 'wp_slash' ) ) { function wp_slash( $value ) { return $value; } }
 
 $GLOBALS['attention_posts'] = array(
     700 => array( 'post_type' => 'journal', 'title' => 'A Journal Draft' ),
