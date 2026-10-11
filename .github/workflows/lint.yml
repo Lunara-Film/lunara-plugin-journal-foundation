@@ -17,6 +17,7 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
+          extensions: dom
 
       - name: PHP syntax
         run: |
@@ -29,7 +30,9 @@ jobs:
         run: php tests/release-contract.php
 
       - name: WordPress behavior contract
-        run: php tests/wp-behavior-contract.php
+        run: |
+          php tests/wp-behavior-contract.php
+          php tests/ingest-html-runtime.php
 
       - name: Control Plane source rows runtime
         run: php tests/control-plane-sources-runtime.php

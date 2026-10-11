@@ -92,22 +92,9 @@ $production_openapi = contract_file( $root, 'openapi/lunara-journal-fast-desk.op
 $bridge_openapi = contract_file( $root, 'openapi/lunara-journal-bridge.openapi.json' );
 $staging_openapi = contract_file( $root, 'openapi/lunara-journal-fast-desk.staging.openapi.json' );
 
-// Release identity is consistent everywhere users and integrations read it.
-foreach ( array( $main, $schema, $protocol, $readme, $production_openapi, $bridge_openapi, $staging_openapi ) as $release_surface ) {
-    contract_not_contains( $release_surface, '1.1.1', 'Stale 1.1.1 release identity remains.' );
-    contract_not_contains( $release_surface, '1.2.0', 'Stale 1.2.0 release identity remains.' );
-    contract_assert( ! preg_match( '/(?<![0-9.])1\.2\.1(?![0-9.])/', $release_surface ), 'Stale 1.2.1 release identity remains.' );
-}
-contract_contains( $main, 'Version: 1.4.0', 'Plugin header must report 1.4.0.' );
-contract_contains( $main, "define( 'LUNARA_JOURNAL_FOUNDATION_VERSION', '1.4.0' );", 'Global Foundation version must report 1.4.0.' );
-contract_contains( $main, "const VERSION             = '1.4.0';", 'Runtime Foundation version must be 1.4.0.' );
-contract_not_contains( $main, '1.2.13', 'Runtime release identity must not retain Foundation 1.2.13.' );
-contract_contains( $readme, 'Version: 1.4.0', 'README must report Foundation 1.4.0.' );
+// Release identity is exercised through the real bootstrap in wp-behavior-contract.php.
+// Documentation and API schema versions are not package release pins.
 contract_contains( $readme, 'Authorization: Bearer', 'README must document Bearer authentication for ChatGPT Actions.' );
-contract_not_contains( $readme, 'Version: 1.2.2', 'README release identity must not lag behind the plugin.' );
-foreach ( array( 'production' => $production_openapi, 'bridge' => $bridge_openapi, 'staging' => $staging_openapi ) as $label => $openapi_release ) {
-    contract_contains( $openapi_release, '"version": "1.4.0"', ucfirst( $label ) . ' OpenAPI release version must report 1.4.0.' );
-}
 
 // Source rows are labeled, strict, retained per user on rejection, and save
 // only through the immutable repository after validation.

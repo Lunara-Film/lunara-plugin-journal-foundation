@@ -6,6 +6,8 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+require_once __DIR__ . '/class-lunara-journal-ingest-html.php';
+
 final class Lunara_Journal_Ingest {
     const FILTER = 'lunara_journal_foundation_ingest';
     const META_IDEMPOTENCY = '_lunara_dispatch_idempotency_key';
@@ -176,6 +178,9 @@ final class Lunara_Journal_Ingest {
 
         $title = isset( $body['title'] ) ? wp_strip_all_tags( (string) $body['title'] ) : '';
         $content = isset( $body['content'] ) ? self::sanitize_post_html( (string) $body['content'] ) : '';
+        if ( is_wp_error( $content ) ) {
+            return $content;
+        }
         $content = self::normalize_content_paragraphs( $content );
         if ( '' === trim( $title ) && '' === trim( wp_strip_all_tags( $content ) ) ) {
             return new WP_Error( 'lunara_ingest_empty', 'Dispatch ingest requires title or content.' );
@@ -596,9 +601,7 @@ final class Lunara_Journal_Ingest {
     }
 
     private static function sanitize_post_html( $html ) {
-        $allowed = wp_kses_allowed_html( 'post' );
-        $allowed['em'] = array();
-        return wp_kses( $html, $allowed );
+        return Lunara_Journal_Ingest_HTML::sanitize( $html );
     }
 
     /**
