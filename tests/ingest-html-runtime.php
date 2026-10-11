@@ -1,8 +1,12 @@
 <?php
 /**
- * Exercise real DOM parsing, semantic preservation and the KSES policy boundary.
- * WordPress KSES itself is not reimplemented by this dependency-free fixture.
+ * Exercise the same content contract against both supported parsing paths.
+ * Set LUNARA_WP_TEST_ROOT to run native WordPress HTML API + KSES; without it,
+ * real DOM parsing and a KSES-policy spy keep the fallback test independent.
  */
+if ( getenv( 'LUNARA_WP_TEST_ROOT' ) ) {
+    require __DIR__ . '/wordpress-native-fixture.php';
+} else {
 define( 'ABSPATH', __DIR__ . '/' );
 class WP_Error {
     private $code;
@@ -31,9 +35,11 @@ function wp_kses( $html, $allowed ) {
     }
     return $html;
 }
+}
 require dirname( __DIR__ ) . '/includes/class-lunara-journal-ingest-html.php';
 if ( ! class_exists( 'DOMDocument' ) ) { throw new RuntimeException( 'DOM is required for this behavioral fixture.' ); }
-function html_assert( $condition, $message ) { if ( ! $condition ) { throw new RuntimeException( $message ); } }
+$html_checks = 0;
+function html_assert( $condition, $message ) { global $html_checks; $html_checks++; if ( ! $condition ) { throw new RuntimeException( $message ); } }
 function html_document( $html ) {
     $document = new DOMDocument( '1.0', 'UTF-8' );
     $previous = libxml_use_internal_errors( true );
@@ -86,4 +92,15 @@ foreach ( $blocked as $unsafe ) {
     html_assert( is_wp_error( Lunara_Journal_Ingest_HTML::sanitize( $unsafe ) ), 'Executable content was silently accepted: ' . $unsafe );
 }
 html_assert( '' === Lunara_Journal_Ingest_HTML::sanitize( '' ), 'Empty input should remain empty.' );
-echo "Journal ingestion HTML: semantic article retained, presentation removed, unsafe input rejected, repeat stable.\n";
+if ( getenv( 'LUNARA_WP_TEST_ROOT' ) ) {
+    html_assert( class_exists( 'WP_HTML_Tag_Processor' ) && method_exists( 'WP_HTML_Tag_Processor', 'get_attribute_names_with_prefix' ), 'The native parser path is unavailable.' );
+    $kses_file = realpath( ( new ReflectionFunction( 'wp_kses' ) )->getFileName() );
+    html_assert( $kses_file === realpath( ABSPATH . WPINC . '/kses.php' ), 'Native WordPress KSES was replaced by a test double.' );
+    $schema = Lunara_Journal_Ingest_HTML::sanitize( '<p unrelated-attribute="discard" aria-label="Editorial note" data-source-id="x">Words</p>' );
+    $schema_document = html_document( $schema );
+    $paragraph = $schema_document->getElementsByTagName( 'p' )->item( 0 );
+    html_assert( ! $paragraph->hasAttribute( 'unrelated-attribute' ) && 'Editorial note' === $paragraph->getAttribute( 'aria-label' ) && 'x' === $paragraph->getAttribute( 'data-source-id' ), 'Native KSES did not enforce the semantic attribute schema.' );
+    html_assert( is_wp_error( Lunara_Journal_Ingest_HTML::sanitize( '<p data-source-id="unfinished' ) ), 'Native parser must reject an incomplete token.' );
+}
+$html_mode = getenv( 'LUNARA_WP_TEST_ROOT' ) ? 'native WordPress HTML API + KSES' : 'DOM fallback + KSES policy';
+echo "Journal ingestion HTML ($html_mode): $html_checks assertions passed.\n";
