@@ -265,6 +265,7 @@ $GLOBALS['wp_posts'][99] = new WP_Post( array( 'ID' => 99, 'post_type' => 'attac
 update_post_meta( 99, '_wp_attachment_image_alt', 'A film still' );
 
 require dirname( __DIR__ ) . '/lunara-journal-foundation.php';
+behavior_assert( Lunara_Journal_Foundation::VERSION === LUNARA_JOURNAL_FOUNDATION_VERSION, 'Runtime and global Foundation release identity must agree.' );
 
 $scope_resolver = new ReflectionMethod( 'Lunara_Journal_Foundation', 'required_scope_for_request' );
 $scope_resolver->setAccessible( true );
@@ -374,7 +375,7 @@ $words = implode( ' ', array_fill( 0, 90, 'cinema' ) );
 $payload = array(
     'idempotency_key' => 'dispatch-run-42-item-7',
     'title' => 'A Verified Journal Draft',
-    'content' => '<p>' . $words . '</p><p>Source context and editorial analysis.</p>',
+    'content' => '<p class="builder" style="color:red">' . $words . '</p><p>Source context and editorial analysis.</p>',
     'deck' => 'A canonical deck that also supplies the excerpt.',
     'seo_description' => 'A concise search description for this Journal entry.',
     'featured_media' => 99,
@@ -400,6 +401,15 @@ behavior_assert( 'A Verified Film' === get_field( 'journal_primary_title', $firs
 behavior_assert( '2026-08-12 15:54:00' === get_field( 'journal_source_items', $first['post_id'] )[0]['source_published_at'], 'Full ingest must persist the normalized source publication date.' );
 behavior_assert( false === get_field( 'journal_ready_for_review', $first['post_id'] ), 'Behavior harness must mirror ACF true_false readback for an unchecked field.' );
 behavior_assert( 'run-42' === get_post_meta( $first['post_id'], '_lunara_dispatch_run_id', true ), 'Dispatch run provenance must persist.' );
+behavior_assert( false === strpos( get_post( $first['post_id'] )->post_content, 'class=' ) && false === strpos( get_post( $first['post_id'] )->post_content, 'style=' ), 'Actual ingestion must strip presentational attributes before inserting.' );
+$saved_validation = get_post_meta( $first['post_id'], '_lunara_journal_last_validation', true );
+behavior_assert( is_array( $saved_validation ) && isset( $saved_validation['checked_at'] ) && ( ! empty( $saved_validation['valid'] ) ? 'passed' : 'failed' ) === get_field( 'journal_validation_status', $first['post_id'] ), 'Validation state must come from the existing validator report, not HTML normalization.' );
+behavior_assert( 'test-model' === get_post_meta( $first['post_id'], '_lunara_journal_initial_model', true ), 'Sanitization must preserve the actual model.' );
+$unsafe_payload = $payload;
+$unsafe_payload['idempotency_key'] = 'unsafe-script-input';
+$unsafe_payload['content'] = '<p>Editorial text.</p><script>alert(1)</script>';
+$unsafe_result = Lunara_Journal_Ingest::ingest( $unsafe_payload, true );
+behavior_assert( is_wp_error( $unsafe_result ) && 'lunara_ingest_executable_html' === $unsafe_result->get_error_code(), 'Executable input must fail before creating a draft.' );
 
 $second = apply_filters( 'lunara_journal_foundation_ingest', null, $payload );
 behavior_assert( is_array( $second ) && false === $second['created'], 'Second ingest must reuse the existing draft.' );
