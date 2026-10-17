@@ -1820,9 +1820,12 @@ final class Lunara_Journal_Foundation {
             $errors[] = 'Content contains an <h2>; Journal output should not use <h2> headings.';
         }
 
-        $ascii_subject = $title . "\n" . $excerpt . "\n" . $content . "\n" . (string) $acf['journal_seo_description'];
-        if ( preg_match( '/[^\x09\x0A\x0D\x20-\x7E]/', $ascii_subject ) ) {
-            $warnings[] = 'Non-ASCII characters detected. Convert curly quotes, em dashes, ellipses, and special punctuation to ASCII or HTML entities before publication.';
+        // Curly quotes, em dashes and accents are correct UTF-8 and stay. Only flag
+        // text that is actually damaged: lost characters (U+FFFD), stray control
+        // bytes, or double-encoded mojibake such as "â€™" or "Ã©".
+        $text_subject = $title . "\n" . $excerpt . "\n" . $content . "\n" . (string) $acf['journal_seo_description'];
+        if ( preg_match( '/\x{FFFD}|[\x{0080}-\x{009F}]|â€|Ã[\x{0080}-\x{00BF}]/u', $text_subject ) ) {
+            $warnings[] = 'Damaged characters detected (for example "â€™", "Ã©" or "�"). Re-paste the text from the source.';
         }
 
         $source_urls = self::extract_source_urls( $acf['journal_source_items'] );
@@ -2498,7 +2501,9 @@ final class Lunara_Journal_Foundation {
 
         $report = self::validate_journal_post( get_post( $post_id ) );
         self::update_acf_value( 'journal_validation_status', $report['status'], $post_id );
-        $validation_report = wp_json_encode( $report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES );
+        // Meta saves strip backslashes, which broke this JSON (\" and \u2019) and
+        // failed the readback check. Slash it, and keep Unicode literal.
+        $validation_report = wp_slash( wp_json_encode( $report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) );
         self::update_acf_value( 'journal_validation_report', $validation_report, $post_id );
         $validation_readback = self::verify_acf_fields( $post_id, array(
             'journal_validation_status' => $report['status'],
