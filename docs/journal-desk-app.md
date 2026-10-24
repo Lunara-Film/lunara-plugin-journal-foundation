@@ -10,6 +10,8 @@ The Desk now opens on **Stories**: a shared feature-film news wire using the exi
 
 Coverage badges match canonical source URLs against the latest 250 active Journal records. They distinguish an existing draft from published coverage; an absent badge is not proof the story has never been covered. Discovery and the older Pitches tab use the same store. No WordPress credentials or article queue are kept in browser storage.
 
+Version 1.5.1 initializes Dispatch's lazy-loaded feed services before checking discovery availability. An active Dispatch is therefore recognized on ordinary Journal Desk requests, without running its drafting worker or fetching feeds during a read.
+
 **Publishing** reports today's live count, the last published entry, timed articles, approved reserve and delivery problems. The floor is one Journal article per site calendar day; the reserve target is seven. An administrator explicitly approves each saved, validated article for reserve or a chosen time. Time-sensitive approvals expire after 24 hours; the explicit Evergreen choice extends approval to 30 days. Changed articles, expired approvals, revoked publication access, locks and validation errors require renewed attention. Approvals do not grant broader bridge access or turn on the Control Plane's publication setting.
 
 Timed articles stay as drafts until the guarded delivery worker revalidates and publishes them. The worker checks hourly for daily coverage after 10 a.m. in the WordPress site timezone and uses a single queued event for a chosen delivery time. It never picks an unapproved draft. A failed run leaves the article unpublished and records its result. Published status is read back before the reserve approval is consumed.

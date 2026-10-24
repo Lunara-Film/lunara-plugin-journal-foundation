@@ -31,6 +31,15 @@ final class Lunara_Journal_Story_Wire {
     }
 
     private static function available() {
+        // Dispatch loads its feed services lazily; normal REST reads do not run its worker.
+        if ( ! class_exists( 'Lunara_Dispatch_Feed_Fetcher' ) && class_exists( 'Lunara_Dispatch_Plugin' )
+            && method_exists( 'Lunara_Dispatch_Plugin', 'instance' ) && method_exists( 'Lunara_Dispatch_Plugin', 'ensure_services' ) ) {
+            try {
+                Lunara_Dispatch_Plugin::instance()->ensure_services();
+            } catch ( Throwable $error ) {
+                return false;
+            }
+        }
         return class_exists( 'Lunara_Dispatch_Pitches' ) && method_exists( 'Lunara_Dispatch_Pitches', 'all' )
             && method_exists( 'Lunara_Dispatch_Pitches', 'add_items' ) && method_exists( 'Lunara_Dispatch_Pitches', 'pitch_id' )
             && class_exists( 'Lunara_Dispatch_Feed_Fetcher' ) && method_exists( 'Lunara_Dispatch_Feed_Fetcher', 'fetch_all' )

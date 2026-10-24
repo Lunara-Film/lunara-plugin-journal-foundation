@@ -6,6 +6,8 @@ $GLOBALS['wire_routes'] = array();
 $GLOBALS['wire_logged_in'] = true;
 $GLOBALS['wire_caps'] = array( 'manage_options' => true );
 $GLOBALS['wire_fetches'] = 0;
+$GLOBALS['wire_service_initializations'] = 0;
+$GLOBALS['wire_worker_runs'] = 0;
 $GLOBALS['wire_marked'] = array();
 $GLOBALS['wire_fetch_result'] = array( 'items' => array(), 'errors' => array(), 'skipped_duplicates' => 0 );
 $GLOBALS['wire_meta'] = array();
@@ -90,6 +92,18 @@ function wire_load_dispatch() {
             return $added;
         }
     }
+    class Lunara_Dispatch_Plugin {
+        public static function instance() { return new self(); }
+        public function ensure_services() {
+            $GLOBALS['wire_service_initializations']++;
+            if ( ! empty( $GLOBALS['wire_service_throw'] ) ) { throw new RuntimeException( 'secret service diagnostics' ); }
+            wire_load_feed_fetcher();
+        }
+        public function run() { $GLOBALS['wire_worker_runs']++; throw new RuntimeException( 'Paid worker must never be called by discovery.' ); }
+        public function queue_manual_run() { $GLOBALS['wire_worker_runs']++; throw new RuntimeException( 'Paid worker must never be queued by discovery.' ); }
+    }
+}
+function wire_load_feed_fetcher() {
     class Lunara_Dispatch_Feed_Fetcher {
         public function fetch_all() {
             $GLOBALS['wire_fetches']++;
@@ -99,11 +113,9 @@ function wire_load_dispatch() {
         }
         public function mark_seen( array $items ) { $GLOBALS['wire_marked'] = $items; }
     }
-    class Lunara_Dispatch_Plugin {
-        public static function instance() { throw new RuntimeException( 'Paid worker must never be called by discovery.' ); }
-    }
 }
 wire_load_dispatch();
+wire_check( ! class_exists( 'Lunara_Dispatch_Feed_Fetcher' ), 'fixture did not preserve Dispatch lazy loading' );
 
 $GLOBALS['wire_logged_in'] = false;
 wire_check( is_wp_error( Lunara_Journal_Story_Wire::rest_list( wire_request() ) ), 'anonymous reader accepted' );
@@ -116,6 +128,18 @@ $GLOBALS['wire_caps']['manage_options'] = false;
 wire_check( is_wp_error( Lunara_Journal_Story_Wire::rest_refresh( wire_request() ) ), 'nonadministrator refreshed sources' );
 $GLOBALS['wire_caps']['manage_options'] = true;
 wire_check( 0 === $GLOBALS['wire_fetches'], 'permission failure fetched feeds' );
+wire_check( 0 === $GLOBALS['wire_service_initializations'] && ! class_exists( 'Lunara_Dispatch_Feed_Fetcher' ), 'permission failure initialized Dispatch services' );
+
+$GLOBALS['wire_service_throw'] = true;
+$failed_boot = Lunara_Journal_Story_Wire::rest_list( wire_request() )->get_data();
+wire_check( false === $failed_boot['availability']['ready'] && 1 === $GLOBALS['wire_service_initializations'], 'service initialization failure escaped or reported ready' );
+wire_check( ! class_exists( 'Lunara_Dispatch_Feed_Fetcher' ) && 0 === $GLOBALS['wire_fetches'] && 0 === $GLOBALS['wire_worker_runs'], 'failed initialization fetched feeds or ran the worker' );
+$GLOBALS['wire_service_throw'] = false;
+$ready = Lunara_Journal_Story_Wire::rest_list( wire_request() )->get_data();
+wire_check( true === $ready['availability']['ready'] && true === $ready['availability']['can_refresh'] && 2 === $GLOBALS['wire_service_initializations'], 'active Dispatch lazy services were not initialized on authorized read' );
+wire_check( 0 === $GLOBALS['wire_fetches'] && 0 === $GLOBALS['wire_worker_runs'], 'availability read fetched feeds or invoked the paid worker' );
+Lunara_Journal_Story_Wire::rest_list( wire_request() );
+wire_check( 2 === $GLOBALS['wire_service_initializations'], 'already loaded Dispatch services initialized again' );
 
 $movie = wire_story( 'A director makes a new film', 'https://www.example.com/new-film/?utm_source=rss#top' );
 $undated = wire_story( 'Another feature film', 'https://example.com/undated-film', 'A film without a source date.', '' );
@@ -167,5 +191,6 @@ delete_option( Lunara_Journal_Story_Wire::REFRESH_OPTION );
 $GLOBALS['wire_replace_lock'] = true;
 Lunara_Journal_Story_Wire::rest_refresh( wire_request() );
 wire_check( 'another-owner' === get_option( Lunara_Journal_Story_Wire::LOCK_OPTION ), 'refresh deleted another worker lock' );
+wire_check( 0 === $GLOBALS['wire_worker_runs'], 'discovery invoked or queued the paid worker' );
 
 echo "Story Wire behavior checks passed.\n";
