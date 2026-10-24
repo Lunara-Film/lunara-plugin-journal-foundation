@@ -48,13 +48,13 @@ final class Lunara_Journal_Config_Schema {
             'activated_at_gmt' => $now,
             'changelog'        => 'Initial Journal Control Plane configuration generated from existing Dispatch/Foundation settings.',
             'editorial'        => array(
-                'purpose' => 'LUNARA Journal is the living news-desk and magazine side of LUNARA Film: selective, critic-led, film-fan-aware dispatches that exist only when Dalton has a real reason to surface the item.',
+                'purpose' => 'LUNARA FILM Journal is the living news-desk and magazine side of LUNARA Film: selective, critic-led, film-fan-aware dispatches that exist only when Dalton has a real reason to surface the item.',
                 'voice'   => array(
                     'summary' => 'Conversational, exact, sharp, fan-aware, critic-led, alive without sounding like trade-copy filler.',
                     'reader_value_test' => array(
                         'Would a film reader text this to a friend with a reaction?',
                         'Does it reveal a meaningful pressure point around a movie, filmmaker, studio, actor, audience behavior, box office signal, festival strategy, awards race, or the business of taste?',
-                        'Can LUNARA add judgment, excitement, skepticism, context, taste, stakes, contradiction, or reader-facing implication beyond the source?'
+                        'Can LUNARA FILM add judgment, excitement, skepticism, context, taste, stakes, contradiction, or reader-facing implication beyond the source?'
                     ),
                     'banned_phrases' => array(
                         'autopsy',
@@ -90,7 +90,7 @@ final class Lunara_Journal_Config_Schema {
                         'Compression without stiffness. Cut until every paragraph does double duty, but the test is not "is this elegant?" It is "would I actually say this?" A stray joke or an aside is fine when it advances the take.',
                         'Contempt and admiration both need specifics. "This guy sucks" is a blog comment. "This guy hasn\'t made a watchable movie since 2009" is a Journal entry. Same rule for praise.',
                         'Make a call. No hedging unless real uncertainty exists, and then name the specific thing that is uncertain instead of spraying qualifiers across the whole sentence.',
-                        'Standalone. No references to LUNARA review scores, prior verdicts, or review-side critical architecture.',
+                        'Standalone. No references to LUNARA FILM review scores, prior verdicts, or review-side critical architecture.',
                     ),
                     'expertise_poison_phrases' => array(
                         'as we know',

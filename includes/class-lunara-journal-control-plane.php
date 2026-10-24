@@ -215,7 +215,7 @@ final class Lunara_Journal_Control_Plane {
         }
         acf_add_local_field_group( array(
             'key' => 'group_lunara_journal_control_plane_provenance',
-            'title' => 'LUNARA Journal Control Plane Provenance',
+            'title' => 'LUNARA FILM Journal Control Plane Provenance',
             'fields' => array(
                 array( 'key' => 'field_lunara_journal_config_version', 'label' => 'Configuration Version', 'name' => '_lunara_journal_config_version', 'type' => 'text', 'readonly' => 1 ),
                 array( 'key' => 'field_lunara_journal_prompt_version', 'label' => 'Prompt Version', 'name' => '_lunara_journal_prompt_version', 'type' => 'text', 'readonly' => 1 ),
@@ -597,7 +597,7 @@ final class Lunara_Journal_Control_Plane {
         $runtime_model = isset( $runtime['models'][ $runtime_provider ] ) ? (string) $runtime['models'][ $runtime_provider ] : '';
         ?>
         <div class="wrap lunara-control-plane">
-            <h1>LUNARA Journal Control Plane</h1>
+            <h1>LUNARA FILM Journal Control Plane</h1>
             <p><strong>Authoritative runtime configuration.</strong> Dispatch, the Fast Journal Desk, validation, and provenance consume this active version. The optional Notion mirror is not part of the GPT operational path. Only WordPress administrators can activate or roll back configuration.</p>
             <?php if ( isset( $_GET['updated'] ) ) : ?><div class="notice notice-success"><p>New Control Plane version activated.</p></div><?php endif; ?>
             <?php if ( isset( $_GET['migrated'] ) ) : ?><div class="notice notice-success"><p>Current Dispatch settings migrated into a new active Control Plane version.</p></div><?php endif; ?>
@@ -618,7 +618,7 @@ final class Lunara_Journal_Control_Plane {
                 <h2>Workflow and AI Runtime</h2>
                 <table class="form-table" role="presentation"><tbody>
                     <tr><th scope="row">Automation</th><td><label><input type="checkbox" name="dispatch_enabled" value="1" <?php checked( ! empty( $config['dispatch']['enabled'] ) ); ?> /> Dispatch automation enabled</label><p class="description">Publication remains manual unless you explicitly use the dedicated GPT publish action.</p></td></tr>
-                    <tr><th scope="row">GPT Publishing</th><td><label><input type="checkbox" name="chatgpt_may_publish" value="1" <?php checked( ! empty( $config['chatgpt']['may_publish'] ) ); ?> /> Allow the private LUNARA GPT to publish a single validated Journal entry when you explicitly instruct it to publish.</label><p class="description">This does not enable bulk publishing or scheduling. The draft must pass validation, including the featured-image guard.</p></td></tr>
+                    <tr><th scope="row">GPT Publishing</th><td><label><input type="checkbox" name="chatgpt_may_publish" value="1" <?php checked( ! empty( $config['chatgpt']['may_publish'] ) ); ?> /> Allow the private LUNARA FILM GPT to publish a single validated Journal entry when you explicitly instruct it to publish.</label><p class="description">This does not enable bulk publishing or scheduling. The draft must pass validation, including the featured-image guard.</p></td></tr>
                     <tr><th scope="row">Schedule</th><td><?php self::select_field( 'dispatch_schedule', $config['dispatch']['schedule'], array( 'daily' => 'Daily', 'twice_daily' => 'Twice Daily', 'every_4_hours' => 'Every 4 Hours', 'every_2_hours' => 'Every 2 Hours' ) ); ?></td></tr>
                     <tr><th scope="row">Provider</th><td><?php self::select_field( 'dispatch_provider', $config['dispatch']['provider'], array( 'openai' => 'OpenAI', 'claude' => 'Claude', 'gemini' => 'Gemini', 'grok' => 'Grok' ) ); ?></td></tr>
                     <tr><th scope="row">Max Output Tokens</th><td><input type="number" min="1024" max="<?php echo esc_attr( (string) Lunara_Journal_Config_Schema::CLAUDE_MAX_OUTPUT_TOKENS ); ?>" name="dispatch_max_tokens" value="<?php echo esc_attr( (string) $config['dispatch']['max_tokens'] ); ?>" /><p class="description">OpenAI, Gemini, and Grok are capped at <?php echo esc_html( number_format( Lunara_Journal_Config_Schema::MAX_OUTPUT_TOKENS ) ); ?> output tokens per run. Claude may use up to <?php echo esc_html( number_format( Lunara_Journal_Config_Schema::CLAUDE_MAX_OUTPUT_TOKENS ) ); ?>, because its thinking counts against the same limit.</p></td></tr>

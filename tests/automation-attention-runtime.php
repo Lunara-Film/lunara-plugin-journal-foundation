@@ -337,7 +337,7 @@ attention_reset();
 Lunara_Journal_Automation::send_scheduled_event(
     'lunara_needs_attention',
     array(
-        'message' => 'Lunara Journal Automation is connected.',
+        'message' => 'Lunara Film Journal Automation is connected.',
         'link'    => admin_url( 'admin.php?page=lunara-control-desk&tab=automation' ),
         'context' => array( 'kind' => 'connection_test', 'checked_at' => current_time( 'mysql' ) ),
     )

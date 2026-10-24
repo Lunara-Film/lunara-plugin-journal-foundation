@@ -1,4 +1,4 @@
-# LUNARA Journal Foundation
+# LUNARA FILM Journal Foundation
 
 Version: 1.4.0
 

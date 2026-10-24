@@ -82,6 +82,6 @@ test('an older Dispatch without the pitch gate gets an honest update message', a
   assert.doesNotMatch(d.querySelector('.status-strip').textContent,/pitch/i);
   assert.equal(d.querySelector('.notice'),null,'the quiet startup check raises no alert');
   await click('[data-view="pitches"]');
-  assert.match(d.querySelector('.empty').textContent,/Lunara Dispatch 3\.3\.0 or later/);
+  assert.match(d.querySelector('.empty').textContent,/Lunara Film Dispatch 3\.3\.0 or later/);
   app.dom.window.close();
 });

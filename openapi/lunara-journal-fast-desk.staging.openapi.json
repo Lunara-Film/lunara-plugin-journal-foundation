@@ -1,8 +1,8 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "LUNARA Fast Journal Desk - Staging",
-    "description": "Staging-only private editorial desk for LUNARA Journal. Replace the stagingHost server variable before importing this schema. Publishing is disabled by default and the standard ChatGPT editor key has no publish scope.",
+    "title": "LUNARA FILM Fast Journal Desk - Staging",
+    "description": "Staging-only private editorial desk for LUNARA FILM Journal. Replace the stagingHost server variable before importing this schema. Publishing is disabled by default and the standard ChatGPT editor key has no publish scope.",
     "version": "1.4.0"
   },
   "servers": [

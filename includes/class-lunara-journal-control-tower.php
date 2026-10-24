@@ -252,7 +252,7 @@ final class Lunara_Journal_Control_Tower {
 
         $css = self::css();
 
-        $html  = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>LUNARA &middot; Journal Control Tower</title><style>' . $css . '</style></head><body>';
+        $html  = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>LUNARA FILM &middot; Journal Control Tower</title><style>' . $css . '</style></head><body>';
         $html .= '<header class="mast"><div class="wrap in"><div><div class="lu">LU<b>N</b>ARA</div><div class="sub">Journal Control Tower</div></div>'
             . '<div class="live"><div><span class="dot"></span>LIVE &middot; read from the database</div><div>' . esc_html( $d['generated'] ) . '</div><div>lunarafilm.com</div></div></div></header>';
         $html .= '<main class="wrap">';
@@ -261,7 +261,7 @@ final class Lunara_Journal_Control_Tower {
         $html .= '<section><p class="eyebrow">Triage &middot; freshest drafts</p><h2>What is on the desk right now</h2><div class="board">' . $cards . '</div></section>';
         $html .= '<section><p class="eyebrow">Why the queue won\'t move</p><h2>Blockers in the current sample</h2><div class="diag">' . $diag . '</div></section>';
         $html .= '</main>';
-        $html .= '<footer><div class="wrap">This page reads your WordPress database live every time it loads &mdash; no snapshot, no refresh, no external service. Generated ' . esc_html( $d['generated'] ) . '. &middot; Lunara Journal Foundation.</div></footer>';
+        $html .= '<footer><div class="wrap">This page reads your WordPress database live every time it loads &mdash; no snapshot, no refresh, no external service. Generated ' . esc_html( $d['generated'] ) . '. &middot; Lunara Film Journal Foundation.</div></footer>';
         $html .= '</body></html>';
         return $html;
     }

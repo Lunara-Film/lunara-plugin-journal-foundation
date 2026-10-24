@@ -1,8 +1,8 @@
 <?php
 /**
- * Plugin Name: LUNARA Journal Foundation
- * Description: Registers the LUNARA Journal content model, ACF fields, draft-first scope-gated bridge, authoritative Control Plane, and Fast Journal Desk for Dispatch and ChatGPT.
- * Version: 1.5.2
+ * Plugin Name: LUNARA FILM Journal Foundation
+ * Description: Registers the LUNARA FILM Journal content model, ACF fields, draft-first scope-gated bridge, authoritative Control Plane, and Fast Journal Desk for Dispatch and ChatGPT.
+ * Version: 1.5.3
  * Author: LUNARA FILM
  * Requires at least: 6.4
  * Requires PHP: 7.4
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 if ( ! defined( 'LUNARA_JOURNAL_FOUNDATION_VERSION' ) ) {
-    define( 'LUNARA_JOURNAL_FOUNDATION_VERSION', '1.5.2' );
+    define( 'LUNARA_JOURNAL_FOUNDATION_VERSION', '1.5.3' );
 }
 if ( ! defined( 'LUNARA_JOURNAL_FOUNDATION_FILE' ) ) {
     define( 'LUNARA_JOURNAL_FOUNDATION_FILE', __FILE__ );
@@ -198,20 +198,20 @@ final class Lunara_Journal_Foundation {
         }
 
         if ( ! class_exists( 'Lunara_Dispatch_Plugin' ) ) {
-            $messages[] = 'Lunara Dispatch 3.2.0 or newer is required for automated draft collection and Fast Desk runs.';
+            $messages[] = 'Lunara Film Dispatch 3.2.0 or newer is required for automated draft collection and Fast Desk runs.';
         } elseif ( ! defined( 'LUNARA_DISPATCH_VERSION' ) || version_compare( LUNARA_DISPATCH_VERSION, '3.2.0', '<' ) ) {
-            $messages[] = 'The active Lunara Dispatch version is not compatible. Install version 3.2.0 or newer.';
+            $messages[] = 'The active Lunara Film Dispatch version is not compatible. Install version 3.2.0 or newer.';
         } elseif ( ! class_exists( 'Lunara_Dispatch_Control_Plane_Client' ) || ! method_exists( 'Lunara_Dispatch_Control_Plane_Client', 'supports_protocol' ) ) {
-            $messages[] = 'Lunara Dispatch is missing the required Journal protocol compatibility contract.';
+            $messages[] = 'Lunara Film Dispatch is missing the required Journal protocol compatibility contract.';
         } elseif ( ! Lunara_Dispatch_Control_Plane_Client::supports_protocol( Lunara_Journal_Protocol::VERSION ) ) {
-            $messages[] = 'Lunara Dispatch does not support Journal protocol ' . Lunara_Journal_Protocol::VERSION . '.';
+            $messages[] = 'Lunara Film Dispatch does not support Journal protocol ' . Lunara_Journal_Protocol::VERSION . '.';
         }
 
         if ( empty( $messages ) ) {
             return;
         }
 
-        echo '<div class="notice notice-error"><p><strong>LUNARA Journal Foundation needs attention.</strong></p><ul>';
+        echo '<div class="notice notice-error"><p><strong>LUNARA FILM Journal Foundation needs attention.</strong></p><ul>';
         foreach ( $messages as $message ) {
             echo '<li>' . esc_html( $message ) . '</li>';
         }
@@ -307,7 +307,7 @@ final class Lunara_Journal_Foundation {
             self::POST_TYPE,
             array(
                 'labels'              => $labels,
-                'description'         => 'LUNARA Journal entries: fast editorial dispatches, reactions, industry notes, and film-culture signals.',
+                'description'         => 'LUNARA FILM Journal entries: fast editorial dispatches, reactions, industry notes, and film-culture signals.',
                 'public'              => true,
                 'publicly_queryable'  => true,
                 'exclude_from_search' => false,
@@ -382,7 +382,7 @@ final class Lunara_Journal_Foundation {
     private static function get_acf_field_group() {
         return array(
             'key'                   => 'group_lunara_journal_foundation',
-            'title'                 => 'LUNARA Journal Editorial Control',
+            'title'                 => 'LUNARA FILM Journal Editorial Control',
             'fields'                => array(
                 array(
                     'key'       => 'field_lunara_journal_tab_editorial',
@@ -658,7 +658,7 @@ final class Lunara_Journal_Foundation {
                     'label'        => 'Editorial Angle',
                     'name'         => 'journal_editorial_angle',
                     'type'         => 'textarea',
-                    'instructions' => 'The concrete reason this is worth publishing on LUNARA.',
+                    'instructions' => 'The concrete reason this is worth publishing on LUNARA FILM.',
                     'rows'         => 4,
                     'new_lines'    => '',
                     'wrapper'      => array( 'width' => '50' ),
@@ -975,7 +975,7 @@ final class Lunara_Journal_Foundation {
             'instruction_placement' => 'label',
             'hide_on_screen'        => '',
             'active'                => true,
-            'description'           => 'Editorial metadata, Dispatch source tracking, ChatGPT revision controls, and validation state for LUNARA Journal entries.',
+            'description'           => 'Editorial metadata, Dispatch source tracking, ChatGPT revision controls, and validation state for LUNARA FILM Journal entries.',
             'show_in_rest'          => 1,
         );
     }
@@ -1195,18 +1195,18 @@ final class Lunara_Journal_Foundation {
         }
 
         if ( '1' !== get_option( self::OPTION_ENABLED, '1' ) ) {
-            return new WP_Error( 'lunara_bridge_disabled', 'The LUNARA Journal bridge is disabled.', array( 'status' => 403 ) );
+            return new WP_Error( 'lunara_bridge_disabled', 'The LUNARA FILM Journal bridge is disabled.', array( 'status' => 403 ) );
         }
 
         $provided = self::get_request_token( $request );
         if ( '' === $provided ) {
-            return new WP_Error( 'lunara_bridge_forbidden', 'Missing LUNARA bridge token.', array( 'status' => 403 ) );
+            return new WP_Error( 'lunara_bridge_forbidden', 'Missing LUNARA FILM bridge token.', array( 'status' => 403 ) );
         }
 
         $profile = self::find_access_profile_for_token( $provided );
 
         if ( ! $profile ) {
-            return new WP_Error( 'lunara_bridge_forbidden', 'Invalid LUNARA bridge token.', array( 'status' => 403 ) );
+            return new WP_Error( 'lunara_bridge_forbidden', 'Invalid LUNARA FILM bridge token.', array( 'status' => 403 ) );
         }
 
         if ( ! self::profile_has_scope( $profile, $required_scope ) ) {
@@ -1338,7 +1338,7 @@ final class Lunara_Journal_Foundation {
         return rest_ensure_response(
             array(
                 'ok'                    => true,
-                'plugin'                => 'LUNARA Journal Foundation',
+                'plugin'                => 'LUNARA FILM Journal Foundation',
                 'version'               => self::VERSION,
                 'post_type_registered'  => post_type_exists( self::POST_TYPE ),
                 'acf_available'         => function_exists( 'acf_add_local_field_group' ),
@@ -2094,7 +2094,7 @@ final class Lunara_Journal_Foundation {
             ),
             'dispatch_ingest' => array(
                 'id'          => 'dispatch_ingest',
-                'label'       => 'LUNARA Dispatch Automation',
+                'label'       => 'LUNARA FILM Dispatch Automation',
                 'actor'       => 'LUNARA Dispatch Automation',
                 'client'      => 'WordPress Dispatch plugin',
                 'scopes'      => array( 'ingest', 'convert', 'schema' ),
@@ -2596,13 +2596,13 @@ final class Lunara_Journal_Foundation {
                 'journal_priority'                  => 'normal',
                 'journal_source_items'              => $source_items,
                 'journal_original_dispatch_copy'    => $content,
-                'journal_chatgpt_brief'             => 'Revise this Dispatch-generated draft into LUNARA Journal voice, preserve sourced claims, remove generic PR phrasing, keep film titles in <em>, and return draft-only copy.',
+                'journal_chatgpt_brief'             => 'Revise this Dispatch-generated draft into LUNARA FILM Journal voice, preserve sourced claims, remove generic PR phrasing, keep film titles in <em>, and return draft-only copy.',
                 'journal_seo_description'           => self::make_plaintext_excerpt( $excerpt ? $excerpt : $content, 155 ),
                 'journal_image_source_url'          => $image_url,
                 'journal_image_alt'                 => is_string( $image_alt ) ? $image_alt : '',
                 'journal_ready_for_review'          => 0,
                 'journal_dispatch_ingested_at'      => current_time( 'mysql' ),
-                'journal_dispatch_conversion_notes' => 'Converted from standard post by LUNARA Journal Foundation adapter.',
+                'journal_dispatch_conversion_notes' => 'Converted from standard post by LUNARA FILM Journal Foundation adapter.',
             ),
         );
     }
@@ -2741,7 +2741,7 @@ final class Lunara_Journal_Foundation {
         }
         ?>
         <div class="wrap">
-            <h1>LUNARA Journal Bridge</h1>
+            <h1>LUNARA FILM Journal Bridge</h1>
             <p>This plugin registers the <strong>Journal</strong> custom post type, ACF editorial fields, and draft-first scope-gated REST endpoints for Dispatch/ChatGPT review.</p>
 
             <?php if ( is_array( $new_key ) && ! empty( $new_key['token'] ) ) : ?>

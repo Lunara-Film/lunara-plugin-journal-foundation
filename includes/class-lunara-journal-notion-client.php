@@ -84,7 +84,7 @@ final class Lunara_Journal_Notion_Client {
             array(
                 'object' => 'block',
                 'type' => 'heading_2',
-                'heading_2' => array( 'rich_text' => array( self::text_object( 'LUNARA Journal Control Plane' ) ) ),
+                'heading_2' => array( 'rich_text' => array( self::text_object( 'LUNARA FILM Journal Control Plane' ) ) ),
             ),
             array(
                 'object' => 'block',
