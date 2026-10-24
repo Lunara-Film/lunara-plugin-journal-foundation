@@ -2,7 +2,7 @@
 /**
  * Plugin Name: LUNARA FILM Journal Foundation
  * Description: Registers the LUNARA FILM Journal content model, ACF fields, draft-first scope-gated bridge, authoritative Control Plane, and Fast Journal Desk for Dispatch and ChatGPT.
- * Version: 1.5.2
+ * Version: 1.5.3
  * Author: LUNARA FILM
  * Requires at least: 6.4
  * Requires PHP: 7.4
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 if ( ! defined( 'LUNARA_JOURNAL_FOUNDATION_VERSION' ) ) {
-    define( 'LUNARA_JOURNAL_FOUNDATION_VERSION', '1.5.2' );
+    define( 'LUNARA_JOURNAL_FOUNDATION_VERSION', '1.5.3' );
 }
 if ( ! defined( 'LUNARA_JOURNAL_FOUNDATION_FILE' ) ) {
     define( 'LUNARA_JOURNAL_FOUNDATION_FILE', __FILE__ );

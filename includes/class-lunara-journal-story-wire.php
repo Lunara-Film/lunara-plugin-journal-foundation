@@ -123,7 +123,7 @@ final class Lunara_Journal_Story_Wire {
             if ( $seen ) { $fetcher->mark_seen( $seen ); }
             $errors = array();
             foreach ( array_slice( (array) ( $fetched['errors'] ?? array() ), 0, 12, true ) as $source => $message ) {
-                $errors[] = array( 'source' => self::text( $source, 120 ), 'message' => self::text( $message, 240 ) );
+                $errors[] = array( 'source' => self::display_text( $source, 120 ), 'message' => self::display_text( $message, 240 ) );
             }
             $state['refreshed_at'] = gmdate( 'c' );
             $state['errors'] = $errors;
@@ -159,15 +159,15 @@ final class Lunara_Journal_Story_Wire {
             if ( 'pending' !== ( $pitch['status'] ?? '' ) ) { continue; }
             $item = isset( $pitch['item'] ) && is_array( $pitch['item'] ) ? $pitch['item'] : array();
             if ( ! self::eligible( $item ) ) { $payload['counts']['filtered']++; continue; }
-            $source = self::text( $item['source_label'] ?? '', 120 );
+            $source = self::display_text( $item['source_label'] ?? '', 120 );
             $source_id = sanitize_title( $source );
             if ( ! isset( $sources[$source] ) ) { $sources[$source] = array( 'id' => $source_id, 'label' => $source, 'count' => 0 ); }
             $sources[$source]['count']++;
             $match = $coverage[self::canonical_url( $item['url'] )] ?? array();
             $story = array(
-                'id' => self::text( $pitch['id'] ?? '', 80 ), 'title' => self::text( $item['title'], 250 ),
+                'id' => self::text( $pitch['id'] ?? '', 80 ), 'title' => self::display_text( $item['title'], 250 ),
                 'url' => self::safe_url( $item['url'] ), 'source' => $source,
-                'summary' => self::text( $item['description'] ?? '', 900 ),
+                'summary' => self::display_text( $item['description'] ?? '', 900 ),
                 'image_url' => empty( $item['image_blocked'] ) ? self::safe_url( $item['image_url'] ?? '' ) : '',
                 'published_at' => self::published_at( $item ), 'status' => 'pending',
                 'covered' => ! empty( $match ), 'coverage_url' => (string) ( $match['url'] ?? '' ),
@@ -192,8 +192,8 @@ final class Lunara_Journal_Story_Wire {
     /** Reject explicit TV stories without discarding film adaptations or an actor's TV history. */
     private static function eligible( array $item ) {
         if ( empty( $item['title'] ) || empty( $item['url'] ) || '' === self::safe_url( $item['url'] ) ) { return false; }
-        $headline = self::text( $item['title'], 500 ) . ' ' . str_replace( array( '-', '_' ), ' ', (string) $item['url'] );
-        $description = self::text( $item['description'] ?? '', 1800 );
+        $headline = self::display_text( $item['title'], 500 ) . ' ' . str_replace( array( '-', '_' ), ' ', (string) $item['url'] );
+        $description = self::display_text( $item['description'] ?? '', 1800 );
         $text = $headline . ' ' . $description;
         $tv = '/\b(?:television|tv|showrunner|sitcom|miniseries|mini series|docuseries|limited series|animated series|streaming series|series finale|season finale|new series|tv series|episodes?|season\s+\d+|season\s+(?:one|two|three|four|five|six)|(?:first|second|third|fourth|fifth|final)\s+season|emmys?|reality show)\b/i';
         if ( preg_match( $tv, $headline ) || preg_match( '/\b(?:short films?|short documentary|short subject|music videos?|music album|concert tour)\b/i', $headline ) ) { return false; }
@@ -272,9 +272,20 @@ final class Lunara_Journal_Story_Wire {
         return preg_replace( '/^www\./', '', strtolower( $parts['host'] ) ) . $port . rtrim( $parts['path'] ?? '/', '/' ) . ( $query ? '?' . http_build_query( $query ) : '' );
     }
 
+    /** Decode feed presentation only; the canonical pitch and its identifier stay untouched. */
+    private static function display_text( $value, $limit ) {
+        $text = html_entity_decode( is_scalar( $value ) ? (string) $value : '', ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+        // Strip after decoding so encoded markup cannot become presentation HTML.
+        $text = sanitize_text_field( $text );
+        $collapsed = preg_replace( '/[\s\p{Z}]+/u', ' ', $text );
+        return self::text( null === $collapsed ? $text : trim( $collapsed ), $limit );
+    }
+
     private static function text( $value, $limit ) {
         $text = sanitize_text_field( is_scalar( $value ) ? (string) $value : '' );
-        return function_exists( 'mb_substr' ) ? mb_substr( $text, 0, $limit ) : substr( $text, 0, $limit );
+        if ( function_exists( 'mb_substr' ) ) { return mb_substr( $text, 0, $limit, 'UTF-8' ); }
+        // PHP installations without mbstring must not split a decoded Unicode character.
+        return preg_match( '/^.{0,' . (int) $limit . '}/us', $text, $match ) ? $match[0] : substr( $text, 0, $limit );
     }
 
     private static function delete_lock( $owner ) {
