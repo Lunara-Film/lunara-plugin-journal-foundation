@@ -1,8 +1,8 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "LUNARA Fast Journal Desk",
-    "description": "Private editorial desk for LUNARA Journal with consolidated operations and deterministic featured-image presence and quality diagnostics. Publishing is disabled by default and excluded from the standard ChatGPT editor scope. A separately publish-scoped credential may use the explicit single-entry action only when Control Plane publishing is enabled, validation passes, and Dalton explicitly instructs the GPT to publish. Never schedules, bulk publishes, deletes, trashes, changes post status outside the dedicated publish action, or activates configuration.",
+    "title": "LUNARA FILM Fast Journal Desk",
+    "description": "Private editorial desk for LUNARA FILM Journal with consolidated operations and deterministic featured-image presence and quality diagnostics. Publishing is disabled by default and excluded from the standard ChatGPT editor scope. A separately publish-scoped credential may use the explicit single-entry action only when Control Plane publishing is enabled, validation passes, and Dalton explicitly instructs the GPT to publish. Never schedules, bulk publishes, deletes, trashes, changes post status outside the dedicated publish action, or activates configuration.",
     "version": "1.4.0"
   },
   "servers": [
@@ -15,7 +15,7 @@
       "LunaraBridgeBearer": {
         "type": "http",
         "scheme": "bearer",
-        "bearerFormat": "LUNARA bridge token"
+        "bearerFormat": "LUNARA FILM bridge token"
       }
     },
     "schemas": {

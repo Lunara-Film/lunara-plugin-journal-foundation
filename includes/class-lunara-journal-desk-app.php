@@ -41,7 +41,7 @@ final class Lunara_Journal_Desk_App {
             status_header( 200 );
             header( 'Content-Type: application/manifest+json; charset=utf-8' );
             echo wp_json_encode( array(
-                'id' => self::url(), 'name' => 'LUNARA Journal Desk', 'short_name' => 'Journal Desk',
+                'id' => self::url(), 'name' => 'LUNARA FILM Journal Desk', 'short_name' => 'Journal Desk',
                 'start_url' => self::url(), 'scope' => self::url(), 'display' => 'standalone',
                 'background_color' => '#0a1520', 'theme_color' => '#0a1520',
                 'icons' => array( array( 'src' => plugins_url( 'assets/desk/icon.svg', LUNARA_JOURNAL_FOUNDATION_FILE ), 'sizes' => 'any', 'type' => 'image/svg+xml', 'purpose' => 'any' ) ),

@@ -300,7 +300,7 @@ final class Lunara_Journal_Fast_Desk {
     public static function rest_run_dispatch( WP_REST_Request $request ) {
         $started = microtime( true );
         if ( ! class_exists( 'Lunara_Dispatch_Plugin' ) ) {
-            return new WP_Error( 'lunara_dispatch_unavailable', 'Lunara Dispatch Automation is not active.', array( 'status' => 503 ) );
+            return new WP_Error( 'lunara_dispatch_unavailable', 'Lunara Film Dispatch Automation is not active.', array( 'status' => 503 ) );
         }
 
         $plugin = Lunara_Dispatch_Plugin::instance();

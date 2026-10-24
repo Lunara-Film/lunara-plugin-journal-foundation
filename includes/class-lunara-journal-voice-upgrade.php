@@ -171,7 +171,7 @@ final class Lunara_Journal_Voice_Upgrade {
         }
         $state = self::state();
         if ( ! self::dispatch_ready() ) {
-            echo '<div class="notice notice-info"><p><strong>Journal voice:</strong> the new one-story voice and the switch to Claude start once Lunara Dispatch ' . esc_html( self::MIN_DISPATCH ) . ' is deployed.</p></div>';
+            echo '<div class="notice notice-info"><p><strong>Journal voice:</strong> the new one-story voice and the switch to Claude start once Lunara Film Dispatch ' . esc_html( self::MIN_DISPATCH ) . ' is deployed.</p></div>';
             return;
         }
         if ( ! empty( $state['claude'] ) || self::claude_key_available() ) {

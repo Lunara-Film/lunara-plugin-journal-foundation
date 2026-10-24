@@ -304,7 +304,7 @@ final class Lunara_Journal_Automation {
                     'queued'     => false,
                     'duplicate'  => true,
                     'event_id'   => $event_id,
-                    'message'    => 'This Run Lunara request was already accepted.',
+                    'message'    => 'This Run Lunara Film request was already accepted.',
                     'guardrails' => self::guardrails(),
                 )
             );
@@ -412,7 +412,7 @@ final class Lunara_Journal_Automation {
             ),
             'workflows'           => array(
                 'morning_desk'      => array( 'label' => 'Morning Desk', 'direction' => 'two-way', 'ready' => '' !== self::outbound_key() ),
-                'run_lunara'        => array( 'label' => 'Run Lunara', 'direction' => 'inbound', 'ready' => ! empty( $profile['token_hash'] ) ),
+                'run_lunara'        => array( 'label' => 'Run Lunara Film', 'direction' => 'inbound', 'ready' => ! empty( $profile['token_hash'] ) ),
                 'capture_idea'      => array( 'label' => 'Capture Idea', 'direction' => 'inbound', 'ready' => ! empty( $profile['token_hash'] ) ),
                 'source_radar'      => array( 'label' => 'Source Radar', 'direction' => 'inbound', 'ready' => ! empty( $profile['token_hash'] ) ),
                 'screening_followup'=> array( 'label' => 'Screening Follow-Up', 'direction' => 'inbound', 'ready' => ! empty( $profile['token_hash'] ) ),
@@ -441,7 +441,7 @@ final class Lunara_Journal_Automation {
         $result = self::queue_outbound_event(
             'lunara_needs_attention',
             array(
-                'message' => 'Lunara Journal Automation is connected.',
+                'message' => 'Lunara Film Journal Automation is connected.',
                 'link'    => admin_url( 'admin.php?page=lunara-control-desk&tab=automation' ),
                 'context' => array( 'kind' => 'connection_test', 'checked_at' => current_time( 'mysql' ) ),
             )
@@ -485,7 +485,7 @@ final class Lunara_Journal_Automation {
             self::queue_outbound_event(
                 'lunara_needs_attention',
                 array(
-                    'message' => 'Lunara Dispatch needs attention: ' . ( $context['message'] ? $context['message'] : 'the latest run did not complete successfully.' ),
+                    'message' => 'Lunara Film Dispatch needs attention: ' . ( $context['message'] ? $context['message'] : 'the latest run did not complete successfully.' ),
                     'link'    => admin_url( 'admin.php?page=lunara-control-desk&tab=automation' ),
                     'context' => $context,
                 )
@@ -766,7 +766,7 @@ final class Lunara_Journal_Automation {
 
         return array(
             'message' => sprintf(
-                'Lunara Morning Desk: %1$d working Journal drafts, %2$d new inbox signals, and %3$d visible attention items. Dispatch is %4$s.',
+                'Lunara Film Morning Desk: %1$d working Journal drafts, %2$d new inbox signals, and %3$d visible attention items. Dispatch is %4$s.',
                 $working,
                 isset( $inbox['new'] ) ? absint( $inbox['new'] ) : 0,
                 $attention,

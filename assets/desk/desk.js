@@ -168,7 +168,7 @@
   }
   function publishState(){return{dirty:dirty(),awaitingReadback:state.awaitingReadback,valid:!!(state.workspace&&state.workspace.validation&&state.workspace.validation.valid),enabled:!!(state.workspace&&state.workspace.workspace.publication&&state.workspace.workspace.publication.gpt_publish_enabled),permitted:!!(state.settings&&state.settings.publication&&state.settings.publication.can_publish),busy:!!state.busy||!state.online};}
   function saveMessage(){
-    if(state.busy==='save')return 'Saving and checking your draft…';if(state.busy==='publish')return 'Publishing to LUNARA…';
+    if(state.busy==='save')return 'Saving and checking your draft…';if(state.busy==='publish')return 'Publishing to LUNARA FILM…';
     if(state.busy==='schedule')return 'Scheduling and checking your article…';if(state.busy==='reserve')return 'Approving the saved article for your reserve…';
     if(state.awaitingReadback)return 'Saved. Reload the saved draft to check it before publishing.';
     if(dirty())return 'Unsaved changes. Save them before publishing.';
@@ -182,7 +182,7 @@
     const save=document.getElementById('save-button');if(save)save.disabled=!!state.busy||!state.online||state.awaitingReadback||!dirty();
     const reserve=document.getElementById('reserve-button');if(reserve)reserve.disabled=!H.canPublish(publishState());
     const schedule=document.getElementById('schedule-button');if(schedule)schedule.disabled=!H.canPublish(publishState())||!H.scheduleIso(state.scheduleAt);
-    const preview=document.getElementById('schedule-preview');if(preview){const iso=H.scheduleIso(state.scheduleAt);preview.textContent=state.scheduleAt?(iso?'On LUNARA: '+zonedDate(iso,siteTimezone()):'Choose a valid future date and time.'):'Choose when this saved article should go live.';}
+    const preview=document.getElementById('schedule-preview');if(preview){const iso=H.scheduleIso(state.scheduleAt);preview.textContent=state.scheduleAt?(iso?'On LUNARA FILM: '+zonedDate(iso,siteTimezone()):'Choose a valid future date and time.'):'Choose when this saved article should go live.';}
   }
   async function saveDraft(){
     if(!dirty()||state.busy||state.awaitingReadback)return;state.busy='save';render();
@@ -196,7 +196,7 @@
   }
   async function publish(){
     if(!H.canPublish(publishState()))return;
-    if(!window.confirm('Publish “'+state.draft.title+'” on LUNARA now?'))return;
+    if(!window.confirm('Publish “'+state.draft.title+'” on LUNARA FILM now?'))return;
     state.busy='publish';render();
     try{
       const result=await api('journal/app/drafts/'+state.workspace.workspace.id+'/publish',{expected_revision:state.revision,confirm_publish_now:true});
@@ -247,7 +247,7 @@
     if(state.busy||!state.online)return;
     const input=clone(state.draft);const draftId=state.workspace.workspace.id;state.busy='revise';state.candidate=null;render();
     try{
-      const result=await api('journal/app/drafts/'+draftId+'/revise',{title:input.title,content:input.content,excerpt:input.excerpt,instructions:state.feedback||'Revise this draft using the active LUNARA Journal voice. Keep its supported news and specific angle; cut abstract trade commentary and inflated claims.',expected_revision:state.revision});
+      const result=await api('journal/app/drafts/'+draftId+'/revise',{title:input.title,content:input.content,excerpt:input.excerpt,instructions:state.feedback||'Revise this draft using the active LUNARA FILM Journal voice. Keep its supported news and specific angle; cut abstract trade commentary and inflated claims.',expected_revision:state.revision});
       if(!result.candidate||typeof result.candidate.content!=='string')throw new Error('The revision was incomplete. Your draft has not changed.');
       state.candidate={...result,draftId,input};notify('Revision ready to compare. Your saved draft has not changed.');
     }catch(error){handleError(error);}finally{state.busy='';render();const panel=document.getElementById('candidate');if(panel)panel.scrollIntoView({behavior:'smooth',block:'start'});}
@@ -282,7 +282,7 @@
   // over Dispatch's REST routes with this same WordPress session; nothing is
   // written until a pitch is approved, and approval only ever makes a draft.
   function pitchUnavailableMessage(error){
-    if(error&&error.code==='rest_no_route')return 'Pitches need Lunara Dispatch 3.3.0 or later. Update Dispatch in WordPress, then refresh.';
+    if(error&&error.code==='rest_no_route')return 'Pitches need Lunara Film Dispatch 3.3.0 or later. Update Dispatch in WordPress, then refresh.';
     return error&&error.message||'Pitches could not be loaded.';
   }
   async function loadPitches(quiet){
@@ -314,7 +314,7 @@
     catch(error){handleError(error);}finally{state.busy='';render();}
   }
   function header(title,eyebrow,description,actions){return '<div class="page-heading"><div><p class="eyebrow">'+e(eyebrow)+'</p><h1>'+e(title)+'</h1>'+(description?'<p class="muted">'+e(description)+'</p>':'')+'</div>'+(actions?'<div class="actions">'+actions+'</div>':'')+'</div>';}
-  function notice(){return state.notice?'<div class="notice'+(state.notice.error?' error':'')+'" role="'+(state.notice.error?'alert':'status')+'"><div>'+e(state.notice.message)+(state.notice.url?link(state.notice.url,'View on LUNARA'):'')+'</div><button data-action="dismiss" aria-label="Dismiss message">×</button></div>':'';}
+  function notice(){return state.notice?'<div class="notice'+(state.notice.error?' error':'')+'" role="'+(state.notice.error?'alert':'status')+'"><div>'+e(state.notice.message)+(state.notice.url?link(state.notice.url,'View on LUNARA FILM'):'')+'</div><button data-action="dismiss" aria-label="Dismiss message">×</button></div>':'';}
   function wireView(){
     const data=state.wire;const availability=data&&data.availability||{};
     const refresh='<button class="btn primary" data-action="refresh-wire"'+(state.busy||state.wireLoading||!state.online||availability.can_refresh===false?' disabled':'')+'>'+icon('refresh',state.wireLoading)+(state.wireLoading?'Refreshing…':'Refresh sources')+'</button>';
@@ -332,7 +332,7 @@
       const pending=story.status==='pending'&&!story.covered;
       const status=story.covered?(story.coverage_status==='publish'?'Covered':story.coverage_status==='future'?'Scheduled':'Draft already exists'):PITCH_STATUS[story.status]||story.status||'Status unavailable';
       const source=link(story.url,'Read source','small');
-      return '<article class="wire-story'+(story.covered?' covered':'')+'">'+(image?'<div class="wire-image-wrap"><img class="wire-image" loading="lazy" src="'+e(image)+'" alt="" referrerpolicy="no-referrer"></div>':'<div class="wire-image-missing" aria-hidden="true">'+icon('wire')+'</div>')+'<div class="wire-body"><div class="wire-meta"><strong>'+e(story.source||'Source unavailable')+'</strong><span>'+(when?'<time datetime="'+e(story.published_at)+'">'+e(when)+'</time>':'Date unavailable')+'</span>'+(!pending?'<span class="badge '+(story.covered?'good':'')+'">'+e(status)+'</span>':'')+'</div><h2 class="wire-title">'+e(story.title||'Untitled source story')+'</h2>'+(story.summary?'<p class="wire-description">'+e(story.summary)+'</p>':'')+'<div class="wire-source-links">'+source+(story.coverage_url?link(story.coverage_url,story.coverage_status==='publish'?'Read LUNARA coverage':'Open existing article','small'):'')+'</div>'+(pending?(state.wireAngleOpen[id]?'<div class="wire-angle"><label class="label" for="wire-angle-'+e(id)+'">Your angle for the writer</label><textarea id="wire-angle-'+e(id)+'" data-wire-angle-text="'+e(id)+'" maxlength="600" placeholder="What should this story lead with?"'+disabled()+'>'+e(state.wireAngles[id]||'')+'</textarea></div>':'')+'<div class="actions wire-actions"><button class="btn primary" data-wire-story="'+e(id)+'" data-call="write"'+(state.busy||state.wireLoading||!state.online?' disabled':'')+'>Write it</button><button class="btn quiet" data-wire-story="'+e(id)+'" data-call="pass"'+(state.busy||state.wireLoading||!state.online?' disabled':'')+'>Pass</button><button class="link-btn small" data-wire-angle="'+e(id)+'" aria-expanded="'+!!state.wireAngleOpen[id]+'"'+disabled()+'>'+(state.wireAngleOpen[id]?'Hide angle':state.wireAngles[id]?'Edit angle':'Add your angle')+'</button></div>':'')+'</div></article>';
+      return '<article class="wire-story'+(story.covered?' covered':'')+'">'+(image?'<div class="wire-image-wrap"><img class="wire-image" loading="lazy" src="'+e(image)+'" alt="" referrerpolicy="no-referrer"></div>':'<div class="wire-image-missing" aria-hidden="true">'+icon('wire')+'</div>')+'<div class="wire-body"><div class="wire-meta"><strong>'+e(story.source||'Source unavailable')+'</strong><span>'+(when?'<time datetime="'+e(story.published_at)+'">'+e(when)+'</time>':'Date unavailable')+'</span>'+(!pending?'<span class="badge '+(story.covered?'good':'')+'">'+e(status)+'</span>':'')+'</div><h2 class="wire-title">'+e(story.title||'Untitled source story')+'</h2>'+(story.summary?'<p class="wire-description">'+e(story.summary)+'</p>':'')+'<div class="wire-source-links">'+source+(story.coverage_url?link(story.coverage_url,story.coverage_status==='publish'?'Read LUNARA FILM coverage':'Open existing article','small'):'')+'</div>'+(pending?(state.wireAngleOpen[id]?'<div class="wire-angle"><label class="label" for="wire-angle-'+e(id)+'">Your angle for the writer</label><textarea id="wire-angle-'+e(id)+'" data-wire-angle-text="'+e(id)+'" maxlength="600" placeholder="What should this story lead with?"'+disabled()+'>'+e(state.wireAngles[id]||'')+'</textarea></div>':'')+'<div class="actions wire-actions"><button class="btn primary" data-wire-story="'+e(id)+'" data-call="write"'+(state.busy||state.wireLoading||!state.online?' disabled':'')+'>Write it</button><button class="btn quiet" data-wire-story="'+e(id)+'" data-call="pass"'+(state.busy||state.wireLoading||!state.online?' disabled':'')+'>Pass</button><button class="link-btn small" data-wire-angle="'+e(id)+'" aria-expanded="'+!!state.wireAngleOpen[id]+'"'+disabled()+'>'+(state.wireAngleOpen[id]?'Hide angle':state.wireAngles[id]?'Edit angle':'Add your angle')+'</button></div>':'')+'</div></article>';
     }).join('')+'</div>';
     return html;
   }
@@ -437,7 +437,7 @@
   function render(){
     const active=state.view==='review'?'queue':state.view;
     const nav=[['wire','Stories'],['queue','Queue'],['publishing','Publishing'],['pitches','Pitches'],['dispatch','Dispatch'],['voice','Voice']].map(([key,label])=>'<button type="button" role="tab" aria-selected="'+(active===key)+'" data-view="'+key+'"'+disabled()+'>'+icon(key)+'<span>'+label+'</span></button>').join('');
-    root.innerHTML='<div class="shell"><aside class="sidebar"><a class="brand" href="'+e(config.deskUrl)+'" aria-label="LUNARA Journal Desk"><span class="brand-name">LUNARA</span><span class="brand-sub">FILM</span></a><nav class="nav" aria-label="Journal Desk" role="tablist">'+nav+'</nav><div class="sidebar-footer"><p>Journal Desk</p><p>'+e(config.name)+'</p>'+link(config.siteUrl,'Visit LUNARA')+'</div></aside><div class="app-body"><header class="topbar"><span class="topbar-label">JOURNAL DESK</span><span class="private-label">'+icon('lock')+'Private workspace</span></header>'+(!state.online?'<div class="offline" role="status">You’re offline. Keep this window open to retain unsaved changes.</div>':'')+'<main id="main" class="main" aria-busy="'+!!state.busy+'">'+notice()+(state.view==='review'&&state.workspace?reviewView():state.view==='wire'?wireView():state.view==='publishing'?publishingView():state.view==='pitches'?pitchesView():state.view==='voice'?voiceView():state.view==='dispatch'?dispatchView():queueView())+'</main></div></div>';
+    root.innerHTML='<div class="shell"><aside class="sidebar"><a class="brand" href="'+e(config.deskUrl)+'" aria-label="LUNARA FILM Journal Desk"><span class="brand-name">LUNARA</span><span class="brand-sub">FILM</span></a><nav class="nav" aria-label="Journal Desk" role="tablist">'+nav+'</nav><div class="sidebar-footer"><p>Journal Desk</p><p>'+e(config.name)+'</p>'+link(config.siteUrl,'Visit LUNARA FILM')+'</div></aside><div class="app-body"><header class="topbar"><span class="topbar-label">JOURNAL DESK</span><span class="private-label">'+icon('lock')+'Private workspace</span></header>'+(!state.online?'<div class="offline" role="status">You’re offline. Keep this window open to retain unsaved changes.</div>':'')+'<main id="main" class="main" aria-busy="'+!!state.busy+'">'+notice()+(state.view==='review'&&state.workspace?reviewView():state.view==='wire'?wireView():state.view==='publishing'?publishingView():state.view==='pitches'?pitchesView():state.view==='voice'?voiceView():state.view==='dispatch'?dispatchView():queueView())+'</main></div></div>';
     updateActions();
   }
   root.addEventListener('click',async event=>{

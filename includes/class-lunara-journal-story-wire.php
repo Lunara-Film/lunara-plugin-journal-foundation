@@ -77,7 +77,7 @@ final class Lunara_Journal_Story_Wire {
         $query = self::query( $request );
         if ( is_wp_error( $query ) ) { return $query; }
         if ( ! self::available() ) {
-            return self::error( 'lunara_wire_dispatch_required', 'Activate a compatible Lunara Dispatch plugin to discover film stories.', 503 );
+            return self::error( 'lunara_wire_dispatch_required', 'Activate a compatible Lunara Film Dispatch plugin to discover film stories.', 503 );
         }
         $owner = wp_json_encode( array( 'owner' => wp_generate_uuid4(), 'expires' => time() + self::LOCK_SECONDS ) );
         if ( ! add_option( self::LOCK_OPTION, $owner, '', false ) ) {
@@ -146,7 +146,7 @@ final class Lunara_Journal_Story_Wire {
             'stories' => array(), 'sources' => array(),
             'counts' => array( 'total' => 0, 'matched' => 0, 'returned' => 0, 'covered' => 0, 'filtered' => 0, 'undated' => 0 ),
             'refreshed_at' => (string) ( $state['refreshed_at'] ?? '' ),
-            'availability' => array( 'ready' => $ready, 'can_refresh' => $ready, 'message' => $ready ? '' : 'Activate a compatible Lunara Dispatch plugin to discover film stories.' ),
+            'availability' => array( 'ready' => $ready, 'can_refresh' => $ready, 'message' => $ready ? '' : 'Activate a compatible Lunara Film Dispatch plugin to discover film stories.' ),
             'inventory_truncated' => false, 'coverage_window' => self::COVERAGE_LIMIT,
         );
         if ( ! $ready ) { return $payload; }

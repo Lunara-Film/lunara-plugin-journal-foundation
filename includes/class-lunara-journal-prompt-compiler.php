@@ -52,7 +52,7 @@ final class Lunara_Journal_Prompt_Compiler {
         if ( $exemplars ) {
             $lines[] = '';
             $lines[] = 'DALTON\'S VOICE ON THE PAGE:';
-            $lines[] = 'These are published LUNARA Journal entries Dalton wrote. They are the target. Match how they sound: the opinion in the first sentence, history dropped in the way a fan drops it, every fact framed, a personal stake, sentences you could say out loud, a landing with teeth. Everything else in this prompt describes this voice; these show it.';
+            $lines[] = 'These are published LUNARA FILM Journal entries Dalton wrote. They are the target. Match how they sound: the opinion in the first sentence, history dropped in the way a fan drops it, every fact framed, a personal stake, sentences you could say out loud, a landing with teeth. Everything else in this prompt describes this voice; these show it.';
             $lines[] = 'Never copy their sentences, jokes, facts, or anecdotes, and never pull in their films or people unless the story is about them. Never invent an experience Dalton did not have: no screenings, trips, conversations, or history that the source does not give you. First person is for opinion and reaction to the story in front of you. They appear as plain paragraphs; your output still follows FORMATTING.';
             foreach ( $exemplars as $index => $exemplar ) {
                 $lines[] = '<example index="' . ( $index + 1 ) . '">';
@@ -169,7 +169,7 @@ final class Lunara_Journal_Prompt_Compiler {
             ? '- Write one entry: the single item that most earns a reader\'s time, fully explored in 300 to 700 words. Never more than one.'
             : sprintf( '- Prefer %d or fewer strong entries; never write more than %d.', (int) ( $selection['prefer_entries'] ?? 2 ), $max_entries );
         $compiled = trim( sprintf(
-            "Analyze the following film news items and synthesize them into a selective Lunara Journal run.\n\nRules:\n- Separate entries with <hr>.\n- Do not use <h2>.\n- Start every entry with an original <h3> headline in Lunara's voice.\n- Film titles in <em>.\n%s\n- Skip anything that does not earn its space.\n- If nothing earns a reader's time, output exactly: %s\n\nBefore writing an entry, silently state its angle in one sentence. If the angle is \"this happened\" or \"this is interesting\", skip the item.\n- Fan first, critic brain second. The take is the spine; the facts serve it.\n- Opinion lands in paragraph one. First person is allowed.\n- Sound like Dalton's published entries in the system prompt. Never copy them.\n- Every entry ends on a landing sentence, then one engagement question that makes the reader pick a side on the entry's specific tension. Always; never a poll.\n- If a sentence would sit comfortably in Variety, Deadline, THR, or IndieWire, rewrite it until it sounds like Dalton talking.\n\nInput News Data:",
+            "Analyze the following film news items and synthesize them into a selective Lunara Film Journal run.\n\nRules:\n- Separate entries with <hr>.\n- Do not use <h2>.\n- Start every entry with an original <h3> headline in Lunara Film's voice.\n- Film titles in <em>.\n%s\n- Skip anything that does not earn its space.\n- If nothing earns a reader's time, output exactly: %s\n\nBefore writing an entry, silently state its angle in one sentence. If the angle is \"this happened\" or \"this is interesting\", skip the item.\n- Fan first, critic brain second. The take is the spine; the facts serve it.\n- Opinion lands in paragraph one. First person is allowed.\n- Sound like Dalton's published entries in the system prompt. Never copy them.\n- Every entry ends on a landing sentence, then one engagement question that makes the reader pick a side on the entry's specific tension. Always; never a poll.\n- If a sentence would sit comfortably in Variety, Deadline, THR, or IndieWire, rewrite it until it sounds like Dalton talking.\n\nInput News Data:",
             $volume,
             (string) ( $selection['skip_marker'] ?? '<!-- LUNARA_SKIP: no reader-worthy items -->' )
         ) );
@@ -179,7 +179,7 @@ final class Lunara_Journal_Prompt_Compiler {
 
     public static function chatgpt_editor_instructions( array $config ) {
         return trim( implode( "\n", array(
-            'You are the private LUNARA Journal Editor working through the WordPress Journal Bridge.',
+            'You are the private LUNARA FILM Journal Editor working through the WordPress Journal Bridge.',
             'Before editing any draft, retrieve and obey the active Journal Control Plane configuration version ' . ( $config['config_version'] ?? '1.0.0' ) . '.',
             'Never publish, schedule, trash, delete, change post status, mutate sources, mutate schedules, rotate keys, or activate configuration.',
             'You may read drafts, propose revisions, save Dalton-approved revisions to allowlisted draft fields, validate, inspect audit history, and mark a validated draft ready for Dalton.',
