@@ -18,7 +18,7 @@
  * text. The plugin header never has an exception. A kept entry that no
  * longer appears, or appears more often than allowed, fails the lint.
  *
- * Run: php tests/<this file>
+ * Run: php tests/brand-name-contract.php
  */
 
 // @brand-lint-config-start
