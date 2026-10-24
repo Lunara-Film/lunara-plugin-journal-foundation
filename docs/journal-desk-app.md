@@ -4,6 +4,20 @@ The private app is served at `/journal-desk/` on the existing WordPress site. It
 
 ## What is included
 
+### Story sourcing and daily delivery
+
+The Desk now opens on **Stories**: a shared feature-film news wire using the existing Dispatch pitch store. Search, filter by source, read the original report, add an angle and choose **Write it** or **Pass**. Refresh imports feeds directly without invoking the AI writer; choosing Write it uses Dispatch's existing paid writer. Explicit TV and short-film stories and source reports older than seven days are filtered. Undated reports remain clearly undated. Filters are deterministic editorial assistance, not a perfect classifier.
+
+Coverage badges match canonical source URLs against the latest 250 active Journal records. They distinguish an existing draft from published coverage; an absent badge is not proof the story has never been covered. Discovery and the older Pitches tab use the same store. No WordPress credentials or article queue are kept in browser storage.
+
+**Publishing** reports today's live count, the last published entry, timed articles, approved reserve and delivery problems. The floor is one Journal article per site calendar day; the reserve target is seven. An administrator explicitly approves each saved, validated article for reserve or a chosen time. Time-sensitive approvals expire after 24 hours; the explicit Evergreen choice extends approval to 30 days. Changed articles, expired approvals, revoked publication access, locks and validation errors require renewed attention. Approvals do not grant broader bridge access or turn on the Control Plane's publication setting.
+
+Timed articles stay as drafts until the guarded delivery worker revalidates and publishes them. The worker checks hourly for daily coverage after 10 a.m. in the WordPress site timezone and uses a single queued event for a chosen delivery time. It never picks an unapproved draft. A failed run leaves the article unpublished and records its result. Published status is read back before the reserve approval is consumed.
+
+**Release prerequisite:** configure and verify a host/system trigger for WordPress cron before relying on unattended delivery. Traffic-triggered WP-Cron alone cannot guarantee timing. The UI reports when the traffic trigger is disabled; it cannot prove the host's scheduler exists. This release creates no hosting credentials and changes no production scheduler settings. Live provider, feed, publishing permissions and one real end-to-end publication still need verification on the installed release.
+
+New private routes are GET `journal/app/wire`, POST `journal/app/wire/refresh`, GET `journal/app/publishing`, and POST `journal/app/drafts/{id}/reserve` or `/schedule`. Every route requires the existing administrator session and REST nonce; delivery writes also require edit and publish capabilities and the current saved revision.
+
 - Live paginated draft queue and search, sourced from the actual Journal content type.
 - Headline, article, summary, deck, and search-description editing.
 - Sources, featured image, publishing checks, and separate voice-review prompts.

@@ -60,5 +60,17 @@
     });
     return {write, pass, angles: notes};
   }
-  return {pendingPitches, togglePitchCall, passRemaining, pitchCallCount, pitchDecisionBody, chooseImage, escapeHtml, safeUrl, isDirty, canPublish, canApplyCandidate, fromWorkspace, saveBody, visibleDrafts, voiceFlags};
+  function scheduleIso(value, now) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(String(value || ''));
+    if (!match) return '';
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime()) || date.getFullYear() !== Number(match[1]) || date.getMonth() + 1 !== Number(match[2]) || date.getDate() !== Number(match[3]) || date.getHours() !== Number(match[4]) || date.getMinutes() !== Number(match[5]) || date.getTime() <= (now === undefined ? Date.now() : now)) return '';
+    return date.toISOString();
+  }
+  function storyDecisionBody(story, call, angle) {
+    if (!story || !story.id || story.covered || story.status !== 'pending' || !['write', 'pass'].includes(call)) return null;
+    const id = String(story.id), note = String(angle || '').trim().slice(0,600);
+    return {write:call === 'write' ? [id] : [], pass:call === 'pass' ? [id] : [], angles:call === 'write' && note ? {[id]:note} : {}};
+  }
+  return {scheduleIso, storyDecisionBody, pendingPitches, togglePitchCall, passRemaining, pitchCallCount, pitchDecisionBody, chooseImage, escapeHtml, safeUrl, isDirty, canPublish, canApplyCandidate, fromWorkspace, saveBody, visibleDrafts, voiceFlags};
 });

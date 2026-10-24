@@ -64,6 +64,8 @@ class WP_Post {
     public $post_excerpt = '';
     public $post_name = '';
     public $post_date = '2026-07-12 00:00:00';
+    public $post_date_gmt = '2026-07-12 00:00:00';
+    public $edit_date = false;
     public $post_modified = '2026-07-12 00:00:00';
     public $post_mime_type = '';
     public function __construct( array $data = array() ) {
@@ -463,5 +465,12 @@ $publish = Lunara_Journal_Fast_Desk::rest_publish_draft( $request );
 behavior_assert( is_wp_error( $publish ) && 'lunara_publish_readback_failed' === $publish->get_error_code(), 'Publish must fail when WordPress does not persist publish status.' );
 behavior_assert( '' === get_post_meta( $first['post_id'], '_lunara_journal_published_at_gmt', true ), 'Failed publish must not write published provenance.' );
 behavior_assert( 'draft' === get_post_status( $first['post_id'] ), 'Failed publish must leave the post as a draft.' );
+
+$GLOBALS['suppress_publish'] = false;
+$GLOBALS['wp_posts'][$first['post_id']]->post_date = '2025-01-01 10:00:00';
+$GLOBALS['wp_posts'][$first['post_id']]->post_date_gmt = '2025-01-01 16:00:00';
+$publish = Lunara_Journal_Fast_Desk::rest_publish_draft( $request );
+behavior_assert( ! is_wp_error( $publish ) && 'publish' === get_post_status( $first['post_id'] ), 'A valid approved draft publishes successfully.' );
+behavior_assert( current_time( 'mysql' ) === $GLOBALS['wp_posts'][$first['post_id']]->post_date && current_time( 'mysql', true ) === $GLOBALS['wp_posts'][$first['post_id']]->post_date_gmt, 'Publishing now resets an older draft date so it counts toward today.' );
 
 echo "Journal Foundation behavioral contracts passed: ingest locks, idempotency, and publish readback.\n";

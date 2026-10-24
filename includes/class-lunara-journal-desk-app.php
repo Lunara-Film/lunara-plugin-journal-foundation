@@ -65,6 +65,7 @@ final class Lunara_Journal_Desk_App {
             'loginUrl' => wp_login_url( self::url() ),
             'name' => $user->display_name ? $user->display_name : $user->user_login,
             'version' => LUNARA_JOURNAL_FOUNDATION_VERSION,
+            'timezone' => wp_timezone()->getName(),
             'maxUploadBytes' => min( 20 * 1024 * 1024, wp_max_upload_size() ),
         );
         $asset_base = plugins_url( 'assets/desk/', LUNARA_JOURNAL_FOUNDATION_FILE );

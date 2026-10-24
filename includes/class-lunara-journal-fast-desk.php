@@ -238,6 +238,9 @@ final class Lunara_Journal_Fast_Desk {
         $result = wp_update_post( array(
             'ID'          => $post->ID,
             'post_status' => 'publish',
+            'post_date'   => current_time( 'mysql' ),
+            'post_date_gmt' => current_time( 'mysql', true ),
+            'edit_date'   => true,
         ), true );
         if ( is_wp_error( $result ) ) {
             return $result;

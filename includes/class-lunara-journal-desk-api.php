@@ -569,6 +569,16 @@ final class Lunara_Journal_Desk_API {
         return self::response( $data );
     }
 
+    /** Share the Desk's post lock with delivery approvals and background publication. */
+    public static function with_post_lock( $post_id, $callback ) {
+        return self::with_lock( 'draft-' . absint( $post_id ), $callback );
+    }
+
+    /** Serialize delivery workers without allowing a second worker to release their lock. */
+    public static function with_delivery_lock( $callback ) {
+        return self::with_lock( 'delivery', $callback );
+    }
+
     /** Serialize writes from app tabs; other WordPress editors are detected by content revision. */
     private static function with_lock( $resource, $callback ) {
         $key = 'lunara_journal_desk_lock_' . sanitize_key( $resource );
