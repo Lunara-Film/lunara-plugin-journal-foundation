@@ -99,6 +99,8 @@ jobs:
         run: |
           php tests/desk-api-runtime.php
           php tests/desk-rewriter-runtime.php
+          php tests/story-wire-runtime.php
+          php tests/publishing-runtime.php
 
       - uses: actions/setup-node@v4
         with:
@@ -111,7 +113,7 @@ jobs:
         run: |
           node --check assets/desk/desk.js
           node --check assets/desk/desk-state.js
-          node --test tests/desk-state.test.cjs tests/desk-image-ui.test.cjs tests/desk-pitches-ui.test.cjs
+          node --test tests/*.test.cjs
 
       - name: OpenAPI JSON syntax
         run: |

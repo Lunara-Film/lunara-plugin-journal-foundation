@@ -16,6 +16,7 @@ test('device upload and library selection stay in the editor and require a verif
     if(url.includes('/save'))return {ok:false,headers:{get:()=> 'application/json'},json:async()=>({message:'Reload after partial save',data:{partial_save:true}})};
     if(url.includes('/media'))data={images:media,total_pages:2};
     else if(url.endsWith('/drafts/42'))data=workspace;
+    else if(url.endsWith('/wire'))data={stories:[],sources:[],availability:{ready:true}};
     else if(url.endsWith('/settings'))data={publication:{can_publish:true},voice:{banned_phrases:[]}};
     else data={drafts:[{id:42,title:'Draft'}],draft_count:1,dispatch:{},pagination:{}};
     return {ok:true,headers:{get:()=> 'application/json'},json:async()=>data};
@@ -23,7 +24,7 @@ test('device upload and library selection stay in the editor and require a verif
   const flush=async()=>{for(let i=0;i<12;i++)await new Promise(resolve=>setImmediate(resolve));};
   const click=async(selector)=>{const el=d.querySelector(selector);assert.ok(el,selector);el.click();await flush();};
   for(const file of ['desk-state.js','desk.js'])w.eval(fs.readFileSync(path.join(__dirname,'../assets/desk',file),'utf8'));
-  await flush();await click('[data-draft="42"]');
+  await flush();await click('[data-view="queue"]');await click('[data-draft="42"]');
   const editor=d.querySelector('#article-editor');editor.innerHTML='<p>My unsaved writing</p>';editor.dispatchEvent(new w.Event('input',{bubbles:true}));
   await click('[data-action="change-image"]');
   const upload=d.querySelector('#image-upload');Object.defineProperty(upload,'files',{value:[new w.File(['image bytes'],'still.jpg',{type:'image/jpeg'})]});upload.dispatchEvent(new w.Event('change',{bubbles:true}));await flush();

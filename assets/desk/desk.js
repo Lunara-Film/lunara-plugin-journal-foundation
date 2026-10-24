@@ -4,10 +4,14 @@
   const H = window.LunaraDeskState;
   const e = H.escapeHtml;
   const root = document.getElementById('journal-desk');
-  const state = { view:'queue', mediaOpen:false, media:null, mediaPage:1, mediaSearch:'', desk:null, settings:null, workspace:null, draft:null, base:null, revision:'', awaitingReadback:false, candidate:null, undo:null, feedback:'', busy:'', notice:null, search:'', page:1, formDirty:false, settingsEdit:null, removedSources:[], online:navigator.onLine, poll:null, pitches:null, pitchMode:null, pitchUnavailable:'', pitchCalls:{}, pitchAngles:{}, pitchAngleOpen:{}, pitchHistory:false };
+  const state = { view:'wire', mediaOpen:false, media:null, mediaPage:1, mediaSearch:'', desk:null, settings:null, workspace:null, draft:null, base:null, revision:'', awaitingReadback:false, candidate:null, undo:null, feedback:'', busy:'', notice:null, search:'', page:1, formDirty:false, settingsEdit:null, removedSources:[], online:navigator.onLine, poll:null, pitches:null, pitchMode:null, pitchUnavailable:'', pitchCalls:{}, pitchAngles:{}, pitchAngleOpen:{}, pitchHistory:false, wire:null, wireSearch:'', wireSource:'', wireLoading:false, wireRefreshing:false, wireError:'', wireAngles:{}, wireAngleOpen:{}, publishing:null, publishingLoading:false, publishingError:'', scheduleAt:'', evergreen:false };
   let selectedRange = null;
   let deskRequest = 0;
+  let wireRequest = 0;
+  let publishingRequest = 0;
   const icons = {
+    wire:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h5v5H7zM15 8h2M15 12h2M7 16h10"/>',
+    publishing:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 11h18M8 15h2M14 15h2"/>',
     queue:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>',
     pitches:'<path d="M3 13h5l2 3h4l2-3h5"/><path d="M5.5 5h13L21 13v6H3v-6l2.5-8Z"/>',
     dispatch:'<path d="m13 2-9 12h7l-1 8 10-13h-7l1-7Z"/>',
@@ -60,13 +64,55 @@
   function announce(text){document.getElementById('announcements').textContent=text;}
   function notify(message,error,url){state.notice={message,error:!!error,url};announce(message);}
   function handleError(error){notify(error.message||'Something went wrong. Try again.',true);if(error.data&&error.data.validation&&state.workspace)state.workspace.validation=error.data.validation;}
-  function unsaved(){return dirty()||state.formDirty||H.pitchCallCount(state.pitchCalls)>0;}
+  function unsaved(){return dirty()||state.formDirty||H.pitchCallCount(state.pitchCalls)>0||Object.values(state.wireAngles).some(value=>String(value).trim())||!!state.scheduleAt;}
   function leaveAllowed(){return !unsaved()||window.confirm('Leave without saving these changes?');}
   async function navigate(view){
     if(state.busy||!leaveAllowed())return;
-    state.mediaOpen=false;state.media=null;state.view=view;state.workspace=null;state.draft=null;state.candidate=null;state.undo=null;state.feedback='';state.formDirty=false;state.settingsEdit=null;state.removedSources=[];state.notice=null;state.pitchCalls={};state.pitchAngles={};state.pitchAngleOpen={};
+    ++wireRequest;++publishingRequest;state.wireLoading=false;state.wireRefreshing=false;state.publishingLoading=false;
+    state.mediaOpen=false;state.media=null;state.view=view;state.workspace=null;state.draft=null;state.candidate=null;state.undo=null;state.feedback='';state.formDirty=false;state.settingsEdit=null;state.removedSources=[];state.notice=null;state.pitchCalls={};state.pitchAngles={};state.pitchAngleOpen={};state.wireAngles={};state.wireAngleOpen={};state.scheduleAt='';state.evergreen=false;
     render();window.scrollTo(0,0);
-    if(view==='queue')await loadDesk();else if(view==='pitches')await loadPitches();else await loadSettings();
+    if(view==='wire')await loadWire();else if(view==='publishing')await loadPublishing();else if(view==='queue')await loadDesk();else if(view==='pitches')await loadPitches();else await loadSettings();
+  }
+  async function loadWire(refresh){
+    if(state.wireRefreshing||refresh&&(!state.online||state.busy||state.wireLoading))return;
+    const request=++wireRequest;state.wireLoading=true;state.wireRefreshing=!!refresh;state.wireError='';if(state.view==='wire')render();
+    try{
+      let refreshed=null;
+      if(refresh)refreshed=await api('journal/app/wire/refresh',{});
+      if(request!==wireRequest)return;
+      const data=await api('journal/app/wire?search='+encodeURIComponent(state.wireSearch)+'&source='+encodeURIComponent(state.wireSource));
+      if(request!==wireRequest)return;
+      if(!Array.isArray(data.stories))throw new Error('Stories returned an incomplete response. Refresh to try again.');
+      state.wire=data;
+      if(refresh){const result=refreshed&&refreshed.refresh||data.refresh||{};const errors=Array.isArray(result.errors)?result.errors:[];
+        if(result.throttled)notify('Sources were refreshed recently. Try again'+(Number(result.retry_after)>0?' in '+Math.ceil(result.retry_after/60)+' minute'+(Math.ceil(result.retry_after/60)===1?'':'s'):' shortly')+'.');
+        else if(errors.length)notify('Source refresh finished with '+errors.length+' source error'+(errors.length===1?'':'s')+'. The available stories are shown below.',true);
+        else notify('Sources refreshed. '+Number(result.added||0)+' new stor'+(Number(result.added||0)===1?'y':'ies')+' added. No articles were written.');
+      }
+    }catch(error){if(request!==wireRequest)return;state.wireError=error.message||'Stories could not be loaded.';}
+    finally{if(request===wireRequest){state.wireLoading=false;state.wireRefreshing=false;if(state.view==='wire')render();}}
+  }
+  async function decideStory(id,call){
+    if(state.busy||!state.online||state.wireLoading)return;
+    const story=state.wire&&state.wire.stories.find(item=>String(item.id)===id);
+    const body=H.storyDecisionBody(story,call,state.wireAngles[id]);if(!body)return;
+    state.busy='wire-'+call;render();
+    try{
+      const result=await api('dispatch/pitches/decide',body);
+      const changed=call==='write'?Number(result.approved):Number(result.passed);
+      if(changed!==1){notify('This story was not confirmed as '+(call==='write'?'approved':'passed')+'. Its latest status is shown below.',true);}
+      else{story.status=call==='write'?'approved':'passed';delete state.wireAngles[id];delete state.wireAngleOpen[id];
+        const writer=result.writer||{};
+        notify(call==='pass'?'Story passed.':writer.queued===false&&!writer.running?'Story approved, but the writer did not start. '+(writer.message||'Check Dispatch before retrying.'):'Story sent to the writer. Its draft will appear in the queue.');
+      }
+      await loadWire();await loadPitches(true);
+    }catch(error){handleError(error);}finally{state.busy='';render();}
+  }
+  async function loadPublishing(){
+    const request=++publishingRequest;state.publishingLoading=true;state.publishingError='';if(state.view==='publishing')render();
+    try{const data=await api('journal/app/publishing');if(request!==publishingRequest)return;if(!Array.isArray(data.reserve)||!Array.isArray(data.scheduled))throw new Error('Publishing returned an incomplete response. Refresh to try again.');state.publishing=data;}
+    catch(error){if(request===publishingRequest)state.publishingError=error.message||'Publishing could not be loaded.';}
+    finally{if(request===publishingRequest){state.publishingLoading=false;if(state.view==='publishing')render();}}
   }
   async function loadDesk(silent){
     const request=++deskRequest;
@@ -89,7 +135,7 @@
   async function openDraft(id){
     if(state.busy||!leaveAllowed())return;
     state.busy='open';state.notice=null;render();
-    try{const data=await api('journal/app/drafts/'+id);state.mediaOpen=false;state.media=null;state.workspace=data;state.revision=data.revision;state.awaitingReadback=false;state.base=H.fromWorkspace(data.workspace);state.draft=clone(state.base);state.view='review';state.candidate=null;state.undo=null;state.feedback='';state.formDirty=false;window.scrollTo(0,0);}
+    try{const data=await api('journal/app/drafts/'+id);++wireRequest;++publishingRequest;state.wireLoading=false;state.wireRefreshing=false;state.publishingLoading=false;state.mediaOpen=false;state.media=null;state.workspace=data;state.revision=data.revision;state.awaitingReadback=false;state.base=H.fromWorkspace(data.workspace);state.draft=clone(state.base);state.view='review';state.candidate=null;state.undo=null;state.feedback='';state.formDirty=false;state.scheduleAt='';state.evergreen=false;state.wireAngles={};state.wireAngleOpen={};window.scrollTo(0,0);}
     catch(error){handleError(error);}finally{state.busy='';render();}
   }
   async function loadMedia(page){
@@ -123,6 +169,7 @@
   function publishState(){return{dirty:dirty(),awaitingReadback:state.awaitingReadback,valid:!!(state.workspace&&state.workspace.validation&&state.workspace.validation.valid),enabled:!!(state.workspace&&state.workspace.workspace.publication&&state.workspace.workspace.publication.gpt_publish_enabled),permitted:!!(state.settings&&state.settings.publication&&state.settings.publication.can_publish),busy:!!state.busy||!state.online};}
   function saveMessage(){
     if(state.busy==='save')return 'Saving and checking your draft…';if(state.busy==='publish')return 'Publishing to LUNARA…';
+    if(state.busy==='schedule')return 'Scheduling and checking your article…';if(state.busy==='reserve')return 'Approving the saved article for your reserve…';
     if(state.awaitingReadback)return 'Saved. Reload the saved draft to check it before publishing.';
     if(dirty())return 'Unsaved changes. Save them before publishing.';
     if(!publishState().valid)return 'Resolve the publishing checks before approving.';
@@ -133,6 +180,9 @@
     const publish=document.getElementById('publish-button');if(publish)publish.disabled=!H.canPublish(publishState());
     const message=document.getElementById('save-message');if(message){message.textContent=saveMessage();message.classList.toggle('warn',dirty());}
     const save=document.getElementById('save-button');if(save)save.disabled=!!state.busy||!state.online||state.awaitingReadback||!dirty();
+    const reserve=document.getElementById('reserve-button');if(reserve)reserve.disabled=!H.canPublish(publishState());
+    const schedule=document.getElementById('schedule-button');if(schedule)schedule.disabled=!H.canPublish(publishState())||!H.scheduleIso(state.scheduleAt);
+    const preview=document.getElementById('schedule-preview');if(preview){const iso=H.scheduleIso(state.scheduleAt);preview.textContent=state.scheduleAt?(iso?'On LUNARA: '+zonedDate(iso,siteTimezone()):'Choose a valid future date and time.'):'Choose when this saved article should go live.';}
   }
   async function saveDraft(){
     if(!dirty()||state.busy||state.awaitingReadback)return;state.busy='save';render();
@@ -152,13 +202,45 @@
       const result=await api('journal/app/drafts/'+state.workspace.workspace.id+'/publish',{expected_revision:state.revision,confirm_publish_now:true});
       if(!result.published||result.post_status!=='publish')throw new Error('Publication was not confirmed. Refresh the queue before retrying.');
       if(state.desk){state.desk.drafts=state.desk.drafts.filter(item=>item.id!==result.id);state.desk.draft_count=Math.max(0,state.desk.draft_count-1);}
-      state.view='queue';state.workspace=null;state.draft=null;state.base=null;state.candidate=null;
+      state.view='queue';state.workspace=null;state.draft=null;state.base=null;state.candidate=null;state.scheduleAt='';state.evergreen=false;
       notify('Published: '+result.title,false,result.permalink);const successNotice=state.notice;await loadDesk();if(state.notice&&state.notice.error)state.notice={...successNotice,message:successNotice.message+'. The queue could not refresh; use Refresh to reload it.'};
+    }catch(error){handleError(error);}finally{state.busy='';render();}
+  }
+  function siteTimezone(){return state.publishing&&state.publishing.timezone||config.timezone||state.settings&&state.settings.timezone||Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC';}
+  function deviceTimezone(){return Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC';}
+  function zonedDate(value,timezone){
+    if(!value)return '';const parsed=new Date(value);if(!Number.isFinite(parsed.getTime()))return '';
+    try{return parsed.toLocaleString(undefined,{timeZone:timezone,month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit',timeZoneName:'short'});}catch(_){return date(value);}
+  }
+  async function reserveDraft(){
+    if(!H.canPublish(publishState()))return;
+    state.busy='reserve';render();
+    try{
+      const id=state.workspace.workspace.id;
+      const result=await api('journal/app/drafts/'+id+'/reserve',{expected_revision:state.revision,approved:true,evergreen:state.evergreen});
+      if(result.reserved!==true||Number(result.id)!==Number(id))throw new Error('Reserve approval was not confirmed. Reload the saved draft before retrying.');
+      state.revision=result.revision||state.revision;state.awaitingReadback=true;
+      const data=await api('journal/app/drafts/'+id);state.workspace=data;state.revision=data.revision;state.awaitingReadback=false;state.base=H.fromWorkspace(data.workspace);state.draft=clone(state.base);
+      notify('Approved for your daily reserve. It can be published automatically when the day needs an article.');
+      state.publishing=null;
+    }catch(error){if(state.awaitingReadback)notify('Reserve approval was saved, but the saved copy could not be reloaded. Reload the saved draft before another action.',true);else handleError(error);}finally{state.busy='';render();}
+  }
+  async function scheduleDraft(){
+    const publishAt=H.scheduleIso(state.scheduleAt);if(!H.canPublish(publishState())||!publishAt)return;
+    if(!window.confirm('Schedule “'+state.draft.title+'” for '+zonedDate(publishAt,siteTimezone())+'?'))return;
+    state.busy='schedule';render();
+    try{
+      const id=state.workspace.workspace.id;
+      const result=await api('journal/app/drafts/'+id+'/schedule',{expected_revision:state.revision,publish_at:publishAt,evergreen:state.evergreen});
+      if(result.scheduled!==true||Number(result.id)!==Number(id)||typeof result.publish_at!=='string'||!result.publish_at||!Number.isFinite(new Date(result.publish_at).getTime()))throw new Error('Scheduling was not confirmed. Reload the saved draft before retrying.');
+      state.view='publishing';state.workspace=null;state.draft=null;state.base=null;state.candidate=null;state.scheduleAt='';state.evergreen=false;
+      notify('Scheduled for '+zonedDate(result.publish_at||publishAt,siteTimezone())+'.');
+      await loadPublishing();
     }catch(error){handleError(error);}finally{state.busy='';render();}
   }
   async function reject(){
     if(state.busy||!leaveAllowed())return;state.busy='reject';render();
-    try{const id=state.workspace.workspace.id;await api('journal/app/drafts/'+id+'/reject',{expected_revision:state.revision});if(state.desk)state.desk.drafts=state.desk.drafts.filter(item=>item.id!==id);state.view='queue';state.workspace=null;state.draft=null;state.base=null;state.candidate=null;notify('Removed from the review queue. The draft is retained in WordPress.');const successNotice=state.notice;await loadDesk();if(state.notice&&state.notice.error)state.notice={...successNotice,message:successNotice.message+' The queue could not refresh; use Refresh to reload it.'};}
+    try{const id=state.workspace.workspace.id;await api('journal/app/drafts/'+id+'/reject',{expected_revision:state.revision});if(state.desk)state.desk.drafts=state.desk.drafts.filter(item=>item.id!==id);state.view='queue';state.workspace=null;state.draft=null;state.base=null;state.candidate=null;state.scheduleAt='';state.evergreen=false;notify('Removed from the review queue. The draft is retained in WordPress.');const successNotice=state.notice;await loadDesk();if(state.notice&&state.notice.error)state.notice={...successNotice,message:successNotice.message+' The queue could not refresh; use Refresh to reload it.'};}
     catch(error){handleError(error);}finally{state.busy='';render();}
   }
   async function revise(){
@@ -233,6 +315,46 @@
   }
   function header(title,eyebrow,description,actions){return '<div class="page-heading"><div><p class="eyebrow">'+e(eyebrow)+'</p><h1>'+e(title)+'</h1>'+(description?'<p class="muted">'+e(description)+'</p>':'')+'</div>'+(actions?'<div class="actions">'+actions+'</div>':'')+'</div>';}
   function notice(){return state.notice?'<div class="notice'+(state.notice.error?' error':'')+'" role="'+(state.notice.error?'alert':'status')+'"><div>'+e(state.notice.message)+(state.notice.url?link(state.notice.url,'View on LUNARA'):'')+'</div><button data-action="dismiss" aria-label="Dismiss message">×</button></div>':'';}
+  function wireView(){
+    const data=state.wire;const availability=data&&data.availability||{};
+    const refresh='<button class="btn primary" data-action="refresh-wire"'+(state.busy||state.wireLoading||!state.online||availability.can_refresh===false?' disabled':'')+'>'+icon('refresh',state.wireLoading)+(state.wireLoading?'Refreshing…':'Refresh sources')+'</button>';
+    let html='<div class="page-heading"><div><h1>Stories</h1><p class="muted">Read the sources. Find your angle. Send the worthwhile stories to the writer.</p></div><div class="actions">'+refresh+'</div></div>';
+    html+='<form id="wire-filter-form" class="wire-tools"><div class="wire-search"><label class="sr-only" for="wire-search">Search stories</label><input id="wire-search" name="search" type="search" maxlength="200" placeholder="Find a film, filmmaker, or story…" value="'+e(state.wireSearch)+'"'+(state.busy||state.wireRefreshing?' disabled':'')+'><button class="btn quiet" type="submit"'+(state.busy||state.wireRefreshing?' disabled':'')+'>Search</button></div><div class="wire-source"><label class="label" for="wire-source">Source</label><select id="wire-source" name="source"'+(state.busy||state.wireRefreshing?' disabled':'')+'><option value="">All sources</option>'+(data&&Array.isArray(data.sources)?data.sources:[]).map(source=>'<option value="'+e(source.id)+'"'+(state.wireSource===String(source.id)||state.wireSource===String(source.label)?' selected':'')+'>'+e(source.label)+(Number.isFinite(Number(source.count))?' ('+Number(source.count)+')':'')+'</option>').join('')+'</select></div></form>';
+    if(state.wireError)html+='<div class="notice error" role="alert"><p>'+e(state.wireError)+(data?' Previously loaded stories are still shown.':'')+'</p></div>';
+    if(state.wireLoading)html+='<p class="loading-line" role="status">Loading source stories…</p>';
+    if(!data)return html+(state.wireLoading?'':'<div class="empty"><h2>Stories are unavailable</h2><p class="muted">Refresh sources to try again.</p></div>');
+    const counts=data.counts||{};
+    html+='<div class="wire-summary"><span>'+data.stories.length+' stor'+(data.stories.length===1?'y':'ies')+' shown'+(Number(counts.covered)>0?' · '+Number(counts.covered)+' already covered':'')+'</span><span>'+(data.refreshed_at?'Sources refreshed '+e(date(data.refreshed_at)):'Sources have not been refreshed yet')+'</span></div>';
+    if(availability.message)html+='<p class="help wire-message">'+e(availability.message)+'</p>';
+    if(!data.stories.length)return html+'<div class="empty"><h2>'+(state.wireSearch||state.wireSource?'No stories match':'No stories waiting')+'</h2><p class="muted">'+(state.wireSearch||state.wireSource?'Try another search or choose all sources.':'Refresh sources to collect the latest film news. Refreshing does not write or publish articles.')+'</p></div>';
+    html+='<div class="wire-list">'+data.stories.map(story=>{
+      const id=String(story.id),image=H.safeUrl(story.image_url),when=date(story.published_at);
+      const pending=story.status==='pending'&&!story.covered;
+      const status=story.covered?(story.coverage_status==='publish'?'Covered':story.coverage_status==='future'?'Scheduled':'Draft already exists'):PITCH_STATUS[story.status]||story.status||'Status unavailable';
+      const source=link(story.url,'Read source','small');
+      return '<article class="wire-story'+(story.covered?' covered':'')+'">'+(image?'<div class="wire-image-wrap"><img class="wire-image" loading="lazy" src="'+e(image)+'" alt="" referrerpolicy="no-referrer"></div>':'<div class="wire-image-missing" aria-hidden="true">'+icon('wire')+'</div>')+'<div class="wire-body"><div class="wire-meta"><strong>'+e(story.source||'Source unavailable')+'</strong><span>'+(when?'<time datetime="'+e(story.published_at)+'">'+e(when)+'</time>':'Date unavailable')+'</span>'+(!pending?'<span class="badge '+(story.covered?'good':'')+'">'+e(status)+'</span>':'')+'</div><h2 class="wire-title">'+e(story.title||'Untitled source story')+'</h2>'+(story.summary?'<p class="wire-description">'+e(story.summary)+'</p>':'')+'<div class="wire-source-links">'+source+(story.coverage_url?link(story.coverage_url,story.coverage_status==='publish'?'Read LUNARA coverage':'Open existing article','small'):'')+'</div>'+(pending?(state.wireAngleOpen[id]?'<div class="wire-angle"><label class="label" for="wire-angle-'+e(id)+'">Your angle for the writer</label><textarea id="wire-angle-'+e(id)+'" data-wire-angle-text="'+e(id)+'" maxlength="600" placeholder="What should this story lead with?"'+disabled()+'>'+e(state.wireAngles[id]||'')+'</textarea></div>':'')+'<div class="actions wire-actions"><button class="btn primary" data-wire-story="'+e(id)+'" data-call="write"'+(state.busy||state.wireLoading||!state.online?' disabled':'')+'>Write it</button><button class="btn quiet" data-wire-story="'+e(id)+'" data-call="pass"'+(state.busy||state.wireLoading||!state.online?' disabled':'')+'>Pass</button><button class="link-btn small" data-wire-angle="'+e(id)+'" aria-expanded="'+!!state.wireAngleOpen[id]+'"'+disabled()+'>'+(state.wireAngleOpen[id]?'Hide angle':state.wireAngles[id]?'Edit angle':'Add your angle')+'</button></div>':'')+'</div></article>';
+    }).join('')+'</div>';
+    return html;
+  }
+  function publishingView(){
+    let html='<div class="page-heading"><div><h1>Publishing</h1><p class="muted">A steady Journal, with room to write ahead.</p></div><div class="actions"><button class="btn quiet" data-action="refresh-publishing"'+(state.busy||state.publishingLoading?' disabled':'')+'>'+icon('refresh',state.publishingLoading)+'Refresh</button></div></div>';
+    if(state.publishingError)html+='<div class="notice error" role="alert"><p>'+e(state.publishingError)+(state.publishing?' Previously loaded publishing status is still shown.':'')+'</p></div>';
+    if(state.publishingLoading)html+='<p class="loading-line" role="status">Checking publication and your reserve…</p>';
+    const data=state.publishing;if(!data)return html;
+    const target=Math.max(1,Number(data.target_per_day)||1),ready=Number(data.ready_count)||0,reserveTarget=Number(data.reserve_target)||7,timezone=data.timezone||'UTC';
+    html+='<div class="publishing-summary"><div><h2>Today</h2><p><strong>'+Number(data.published_today||0)+' of '+target+'</strong> article'+(target===1?'':'s')+' published</p><p class="help">'+e(data.today||'')+' · '+e(timezone)+'</p></div><div><h2>Your reserve</h2><p><strong>'+ready+' of '+reserveTarget+'</strong> approved articles ready</p><p class="help">'+Number(data.coverage_days||0)+' day'+(Number(data.coverage_days)===1?'':'s')+' covered at the current pace.</p></div></div>';
+    const publication=data.publication||{};if(!publication.enabled||!publication.can_publish)html+='<div class="status-strip"><strong>'+(publication.enabled?'Publishing permission is unavailable':'Automatic publishing is disabled')+'</strong><span>Review the Journal settings before approving delivery.</span>'+link(config.settingsUrl,'Open settings','small')+'</div>';
+    if(data.cron&&data.cron.disabled)html+='<p class="publishing-warning" role="status">WordPress’s page-visit scheduler is disabled. Timed delivery needs the server’s scheduled trigger; a saved time alone does not confirm it will run.</p>';
+    if(data.last_delivery&&data.last_delivery.published===false)html+='<div class="notice error" role="alert"><div><strong>The last delivery did not publish</strong><p>'+e(data.last_delivery.message||'Open the article to review its delivery checks.')+'</p><p class="help">'+e(zonedDate(data.last_delivery.at,timezone))+'</p></div>'+(Number(data.last_delivery.id)>0?'<button class="btn quiet" data-draft="'+Number(data.last_delivery.id)+'"'+disabled()+'>Review article</button>':'')+'</div>';
+    if(data.last_published)html+='<p class="last-published">Last published: '+link(data.last_published.url,data.last_published.title||'View article')+' <span class="muted">'+e(zonedDate(data.last_published.date,timezone))+'</span></p>';
+    const attention=Array.isArray(data.attention)?data.attention:[];
+    if(attention.length)html+='<section class="publishing-section"><div class="section-heading"><h2>Needs your attention</h2><span class="small muted">'+attention.length+' article'+(attention.length===1?'':'s')+'</span></div><p class="help">These articles are held from automatic delivery until you review and approve them again.</p><ul class="publishing-list">'+attention.map(item=>'<li><div><h3>'+e(item.title||'Untitled article')+'</h3><p class="delivery-reason">'+e(item.message||'Delivery approval needs to be reviewed.')+'</p>'+(item.expires_at?'<p class="small muted">Approval expiry: '+e(zonedDate(item.expires_at,timezone))+'</p>':'')+'</div>'+(Number(item.id)>0?'<button class="btn quiet" data-draft="'+Number(item.id)+'"'+disabled()+'>Review article</button>':'')+'</li>').join('')+'</ul></section>';
+    html+='<section class="publishing-section"><div class="section-heading"><h2>Scheduled</h2><span class="small muted">'+data.scheduled.length+' waiting</span></div><p class="help">Each article is checked again at delivery. Scheduled times use '+e(timezone)+'.</p>';
+    html+=data.scheduled.length?'<ul class="publishing-list">'+data.scheduled.map(item=>'<li><div><h3>'+e(item.title||'Untitled article')+'</h3><p class="small muted">'+e(zonedDate(item.publish_at,timezone)||'Time unavailable')+'</p></div><span class="badge">Scheduled</span></li>').join('')+'</ul>':'<p class="section-empty">No articles are scheduled. Open a saved draft to choose a delivery time.</p>';
+    html+='</section><section class="publishing-section"><div class="section-heading"><h2>Approved reserve</h2><button class="link-btn small" data-view="queue"'+disabled()+'>Open draft queue</button></div><p class="help">These articles can fill the daily target automatically. Approve saved, checked drafts here only when they are ready to go live.</p>';
+    html+=data.reserve.length?'<ul class="publishing-list">'+data.reserve.map(item=>'<li><div><h3>'+e(item.title||'Untitled article')+'</h3><p class="small muted">Approved'+(item.expires_at?' · Expires '+e(zonedDate(item.expires_at,timezone)):'')+'</p></div><button class="btn quiet" data-draft="'+Number(item.id)+'"'+disabled()+'>Review & schedule</button></li>').join('')+'</ul>':'<p class="section-empty">Your reserve is empty. Review a draft and approve it for the daily reserve to write ahead.</p>';
+    return html+'</section>';
+  }
   function queueView(){
     const refresh='<button class="btn quiet" data-action="refresh"'+disabled()+'>'+icon('refresh',state.busy==='open')+'Refresh</button>';
     let html=header('Draft queue','THE JOURNAL','Your next story starts here.',refresh);
@@ -263,6 +385,7 @@
     if(state.candidate){const c=state.candidate.candidate;html+='<section class="candidate" id="candidate"><div class="candidate-head"><h2>Proposed revision</h2><span class="badge">Not saved</span></div><details><summary>Compare with the current draft</summary><h3>'+e(state.candidate.input.title)+'</h3><div class="reading-copy">'+safeHtml(state.candidate.input.content)+'</div></details><h3>'+e(c.title)+'</h3><div class="reading-copy">'+safeHtml(c.content)+'</div><p class="help">Summary: '+e(c.excerpt)+'</p>'+(state.candidate.notes?'<p class="help">'+e(Array.isArray(state.candidate.notes)?state.candidate.notes.join(' '):state.candidate.notes)+'</p>':'')+'<div class="actions"><button class="btn primary" data-action="apply-candidate">Use this revision</button><button class="btn quiet" data-action="discard-candidate">Keep current draft</button></div></section>';}
     if(state.undo)html+='<p class="help"><button class="link-btn" data-action="undo">Undo applied revision</button></p>';
     html+='</div><aside class="review-aside"><div class="card">'+validationHtml()+'</div><div class="card"><h3>Voice review</h3><p class="help">Prompts for your judgment; these are not an approval score.</p>'+(flags.length?'<ul class="check-list">'+flags.map(x=>'<li>'+e(x)+'</li>').join('')+'</ul>':'<p class="small muted">Read for a specific angle, natural voice, and claims the sources support.</p>')+'</div><div class="card"><h3>Sources</h3>'+(sources.length?'<ul class="source-list">'+sources.map(source=>'<li>'+link(source.source_url||source.url,source.source_headline||source.source_title||source.title||source.source_publication||source.source_name||source.name||'Open source')+'<p>'+e(source.source_publication||source.source_name||source.name||'')+'</p>'+(source.source_excerpt?'<details><summary>Stored excerpt</summary><p>'+e(source.source_excerpt)+'</p></details>':'')+'</li>').join('')+'</ul>':'<p class="small muted">No source links are attached.</p>')+'</div><div class="card"><h3>Featured image</h3>'+(image?'<img class="article-image" src="'+e(image)+'" alt="'+e(draft.imageAlt||'')+'" referrerpolicy="no-referrer">':'<p class="small muted">No featured image is attached.</p>')+'<button class="btn quiet" data-action="change-image" aria-expanded="'+state.mediaOpen+'"'+disabled()+'>Change image</button>'+(state.mediaOpen?imagePicker():'')+'<div class="field-group"><label class="label" for="image-credit">Image credit</label><input id="image-credit" data-field="imageCredit" value="'+e(draft.imageCredit)+'"'+disabled()+'></div><div class="field-group"><label class="label" for="image-alt">Alt text</label><textarea id="image-alt" data-field="imageAlt" maxlength="2000"'+disabled()+'>'+e(draft.imageAlt)+'</textarea><p class="help">Describe what is visible. Saving updates this image’s alt text in the media library, including other places using the same image.</p></div></div></aside></div>';
+    html+='<section class="delivery-panel"><h2>Write ahead</h2><p class="help">Schedule this saved article, or approve it for automatic delivery when the daily Journal target needs a story. It is checked again before publication.</p><label class="check-label evergreen-choice"><input id="evergreen" type="checkbox"'+(state.evergreen?' checked':'')+disabled()+'>Evergreen: still useful beyond tomorrow</label><p class="help">Timely approvals expire after 24 hours. Evergreen approvals expire after 30 days.</p><div class="delivery-actions"><div><label class="label" for="schedule-at">Publish at · '+e(deviceTimezone())+' (your device time)</label><input id="schedule-at" type="datetime-local" value="'+e(state.scheduleAt)+'" aria-describedby="schedule-preview"'+disabled()+'><p id="schedule-preview" class="help">Choose when this saved article should go live.</p></div><button id="schedule-button" class="btn" data-action="schedule"'+(!H.canPublish(publishState())||!H.scheduleIso(state.scheduleAt)?' disabled':'')+'>Approve & schedule</button><button id="reserve-button" class="btn quiet" data-action="reserve"'+(!H.canPublish(publishState())?' disabled':'')+'>Approve for daily reserve</button></div></section>';
     html+='<div class="review-footer"><div><p id="save-message" class="save-state'+(dirty()?' warn':'')+'">'+e(saveMessage())+'</p>'+(!publishState().enabled?link(config.settingsUrl,'Open publishing settings','small'):'')+'</div><div class="actions"><button id="save-button" class="btn" data-action="save"'+(!dirty()||state.busy?' disabled':'')+'>Save draft</button><button id="publish-button" class="btn primary" data-action="publish"'+(!H.canPublish(publishState())?' disabled':'')+'>Approve & Publish</button><button class="btn quiet danger reject" data-action="reject"'+disabled()+'>Reject story</button></div></div>';
     return html;
   }
@@ -313,13 +436,15 @@
   }
   function render(){
     const active=state.view==='review'?'queue':state.view;
-    const nav=[['queue','Queue'],['pitches','Pitches'],['dispatch','Dispatch'],['voice','Voice']].map(([key,label])=>'<button type="button" role="tab" aria-selected="'+(active===key)+'" data-view="'+key+'"'+disabled()+'>'+icon(key)+'<span>'+label+'</span></button>').join('');
-    root.innerHTML='<div class="shell"><aside class="sidebar"><a class="brand" href="'+e(config.deskUrl)+'" aria-label="LUNARA Journal Desk"><span class="brand-name">LUNARA</span><span class="brand-sub">FILM</span></a><nav class="nav" aria-label="Journal Desk" role="tablist">'+nav+'</nav><div class="sidebar-footer"><p>Journal Desk</p><p>'+e(config.name)+'</p>'+link(config.siteUrl,'Visit LUNARA')+'</div></aside><div class="app-body"><header class="topbar"><span class="topbar-label">JOURNAL DESK</span><span class="private-label">'+icon('lock')+'Private workspace</span></header>'+(!state.online?'<div class="offline" role="status">You’re offline. Keep this window open to retain unsaved changes.</div>':'')+'<main id="main" class="main" aria-busy="'+!!state.busy+'">'+notice()+(state.view==='review'&&state.workspace?reviewView():state.view==='pitches'?pitchesView():state.view==='voice'?voiceView():state.view==='dispatch'?dispatchView():queueView())+'</main></div></div>';
+    const nav=[['wire','Stories'],['queue','Queue'],['publishing','Publishing'],['pitches','Pitches'],['dispatch','Dispatch'],['voice','Voice']].map(([key,label])=>'<button type="button" role="tab" aria-selected="'+(active===key)+'" data-view="'+key+'"'+disabled()+'>'+icon(key)+'<span>'+label+'</span></button>').join('');
+    root.innerHTML='<div class="shell"><aside class="sidebar"><a class="brand" href="'+e(config.deskUrl)+'" aria-label="LUNARA Journal Desk"><span class="brand-name">LUNARA</span><span class="brand-sub">FILM</span></a><nav class="nav" aria-label="Journal Desk" role="tablist">'+nav+'</nav><div class="sidebar-footer"><p>Journal Desk</p><p>'+e(config.name)+'</p>'+link(config.siteUrl,'Visit LUNARA')+'</div></aside><div class="app-body"><header class="topbar"><span class="topbar-label">JOURNAL DESK</span><span class="private-label">'+icon('lock')+'Private workspace</span></header>'+(!state.online?'<div class="offline" role="status">You’re offline. Keep this window open to retain unsaved changes.</div>':'')+'<main id="main" class="main" aria-busy="'+!!state.busy+'">'+notice()+(state.view==='review'&&state.workspace?reviewView():state.view==='wire'?wireView():state.view==='publishing'?publishingView():state.view==='pitches'?pitchesView():state.view==='voice'?voiceView():state.view==='dispatch'?dispatchView():queueView())+'</main></div></div>';
     updateActions();
   }
   root.addEventListener('click',async event=>{
     const button=event.target.closest('button');if(!button||button.disabled)return;
     if(button.dataset.view){await navigate(button.dataset.view);return;}
+    if(button.dataset.wireStory){await decideStory(button.dataset.wireStory,button.dataset.call);return;}
+    if(button.dataset.wireAngle){const id=button.dataset.wireAngle;state.wireAngleOpen[id]=!state.wireAngleOpen[id];render();const box=document.getElementById('wire-angle-'+id);if(box)box.focus();return;}
     if(button.dataset.image){const item=state.media&&state.media.images.find(image=>image.id===Number(button.dataset.image));if(item)chooseImage(item);return;}
     if(button.dataset.mediaPage){await loadMedia(Number(button.dataset.mediaPage));return;}
     if(button.dataset.pitchCall){const id=button.dataset.pitchCall;state.pitchCalls=H.togglePitchCall(state.pitchCalls,id,button.dataset.call);render();return;}
@@ -340,8 +465,12 @@
       case 'media-library':await loadMedia(1);break;
       case 'dismiss':state.notice=null;render();break;
       case 'refresh':await loadDesk();break;
+      case 'refresh-wire':await loadWire(true);break;
+      case 'refresh-publishing':await loadPublishing();break;
       case 'save':await saveDraft();break;
       case 'publish':await publish();break;
+      case 'schedule':await scheduleDraft();break;
+      case 'reserve':await reserveDraft();break;
       case 'reject':await reject();break;
       case 'revise':await revise();break;
       case 'remember':await rememberFeedback();break;
@@ -361,12 +490,20 @@
     event.preventDefault();if(state.busy)return;
     if(event.target.id==='media-search-form'){state.mediaSearch=new FormData(event.target).get('search').trim();await loadMedia(1);}
     if(event.target.id==='search-form'){state.search=new FormData(event.target).get('search').trim();state.page=1;await loadDesk();}
+    if(event.target.id==='wire-filter-form'){const form=new FormData(event.target);state.wireSearch=String(form.get('search')||'').trim();state.wireSource=String(form.get('source')||'');await loadWire();}
     if(event.target.id==='voice-form')await saveSettings('voice');
     if(event.target.id==='dispatch-form')await saveSettings('dispatch');
   });
-  root.addEventListener('change',async event=>{if(event.target.id==='image-upload')await uploadImage(event.target.files[0]);});
+  root.addEventListener('change',async event=>{
+    if(event.target.id==='image-upload')await uploadImage(event.target.files[0]);
+    if(event.target.id==='wire-source'){state.wireSource=event.target.value;await loadWire();}
+    if(event.target.id==='evergreen')state.evergreen=event.target.checked;
+  });
   root.addEventListener('input',event=>{
     const el=event.target;
+    if(el.id==='wire-search')state.wireSearch=el.value;
+    if(el.dataset.wireAngleText){state.wireAngles[el.dataset.wireAngleText]=el.value;return;}
+    if(el.id==='schedule-at'){state.scheduleAt=el.value;updateActions();}
     if(el.dataset.field){state.draft[el.dataset.field]=el.value;updateActions();}
     if(el.id==='article-editor'){state.draft.content=safeHtml(el.innerHTML);updateActions();}
     if(el.dataset.pitchAngleText){state.pitchAngles[el.dataset.pitchAngleText]=el.value;return;}
@@ -387,6 +524,7 @@
   window.addEventListener('beforeunload',event=>{if(unsaved()||state.busy){event.preventDefault();event.returnValue='';}});
   window.addEventListener('online',()=>{state.online=true;render();});window.addEventListener('offline',()=>{state.online=false;render();});
   render();
+  loadWire();
   loadPitches(true);
   Promise.all([loadDesk(),api('journal/app/settings').then(settings=>{state.settings=settings;state.settingsEdit=clone(settings);})]).then(()=>render()).catch(error=>{handleError(error);render();});
 })();

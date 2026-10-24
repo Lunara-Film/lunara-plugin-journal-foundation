@@ -9,7 +9,7 @@ function boot(fetchImpl){
   const dom=new JSDOM('<div id="journal-desk"></div><div id="announcements"></div><script id="desk-config" type="application/json"></script>',{url:'https://example.com/journal-desk/',runScripts:'outside-only'});
   const w=dom.window;const d=w.document;
   d.querySelector('#desk-config').textContent=JSON.stringify({apiBase:'https://example.com/wp-json/lunara/v1/',nonce:'nonce',deskUrl:'https://example.com/journal-desk/',siteUrl:'https://example.com/',name:'Dalton',maxUploadBytes:10485760});
-  w.scrollTo=()=>{};w.confirm=()=>true;w.fetch=fetchImpl;
+  w.scrollTo=()=>{};w.confirm=()=>true;w.fetch=(url,opts)=>url.endsWith('/wire')?Promise.resolve(json({stories:[],sources:[],availability:{ready:true}})):fetchImpl(url,opts);
   for(const file of ['desk-state.js','desk.js'])w.eval(fs.readFileSync(path.join(__dirname,'../assets/desk',file),'utf8'));
   const flush=async()=>{for(let i=0;i<12;i++)await new Promise(resolve=>setImmediate(resolve));};
   const click=async(selector)=>{const el=d.querySelector(selector);assert.ok(el,selector);el.click();await flush();};
@@ -46,7 +46,7 @@ test('Desk Pitches tab decides pitches over Dispatch routes with the session non
     if(url.endsWith('/settings'))return json({publication:{},voice:{banned_phrases:[]}});
     return json(desk);
   });
-  const {d,click,flush}=app;await flush();
+  const {d,click,flush}=app;await flush();await click('[data-view="queue"]');
   assert.match(d.querySelector('.status-strip').textContent,/2 pitches waiting/,'queue strip links to waiting pitches');
   await click('[data-view="pitches"]');
   assert.equal(d.querySelectorAll('.pitch-row').length,2,'only pending pitches are listed');
@@ -78,7 +78,7 @@ test('an older Dispatch without the pitch gate gets an honest update message', a
     if(url.endsWith('/settings'))return json({publication:{},voice:{banned_phrases:[]}});
     return json(desk);
   });
-  const {d,click,flush}=app;await flush();
+  const {d,click,flush}=app;await flush();await click('[data-view="queue"]');
   assert.doesNotMatch(d.querySelector('.status-strip').textContent,/pitch/i);
   assert.equal(d.querySelector('.notice'),null,'the quiet startup check raises no alert');
   await click('[data-view="pitches"]');
