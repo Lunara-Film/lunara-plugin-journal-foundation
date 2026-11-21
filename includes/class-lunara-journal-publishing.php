@@ -63,6 +63,7 @@ final class Lunara_Journal_Publishing {
             'last_published' => $last ? array( 'id' => $last->ID, 'title' => get_the_title( $last ), 'date' => get_post_time( 'c', true, $last ), 'url' => get_permalink( $last ) ) : null,
             'scheduled' => $scheduled, 'reserve' => $reserve, 'attention' => $attention,
             'target_per_day' => 1, 'reserve_target' => 7, 'ready_count' => count( $reserve ), 'coverage_days' => self::coverage_days( $now, (int) $today_query->found_posts, $reserve, $scheduled ),
+            'cadence' => class_exists( 'Lunara_Journal_Cadence' ) ? array( 'daily_min' => Lunara_Journal_Cadence::DAILY_MIN, 'daily_max' => Lunara_Journal_Cadence::DAILY_MAX, 'hold' => Lunara_Journal_Cadence::hold_is_on(), 'release_note' => Lunara_Journal_Cadence::release_note() ) : array( 'daily_min' => 2, 'daily_max' => 3, 'hold' => true, 'release_note' => '' ),
             'cron' => array( 'disabled' => defined( 'DISABLE_WP_CRON' ) && DISABLE_WP_CRON, 'next_event' => wp_next_scheduled( self::HOOK ), 'requires_server_trigger' => true ),
             'publication' => array( 'enabled' => ! empty( $config['chatgpt']['may_publish'] ), 'can_publish' => current_user_can( 'publish_posts' ) ),
             'last_delivery' => get_option( 'lunara_journal_delivery_result', null ),
@@ -184,6 +185,12 @@ final class Lunara_Journal_Publishing {
     public static function tick() {
         return Lunara_Journal_Desk_API::with_delivery_lock( static function () {
             $now = new DateTimeImmutable( 'now', wp_timezone() );
+            if ( function_exists( 'apply_filters' ) ) {
+                $filtered_now = apply_filters( 'lunara_journal_delivery_now', $now );
+                if ( $filtered_now instanceof DateTimeImmutable ) {
+                    $now = $filtered_now;
+                }
+            }
             $posts = self::approved_posts();
             usort( $posts, static function ( $a, $b ) {
                 $left = get_post_meta( $a->ID, self::META, true ); $right = get_post_meta( $b->ID, self::META, true );
@@ -192,18 +199,29 @@ final class Lunara_Journal_Publishing {
             foreach ( $posts as $post ) {
                 $approval = get_post_meta( $post->ID, self::META, true );
                 if ( self::approval_problem( $post, $approval ) ) { continue; }
+                if ( class_exists( 'Lunara_Journal_Cadence' ) && Lunara_Journal_Cadence::blocks_delivery( $post->ID ) ) { continue; }
+                $cadence_release = class_exists( 'Lunara_Journal_Cadence' ) && Lunara_Journal_Cadence::is_cadence_post( $post->ID ) && ! Lunara_Journal_Cadence::hold_is_on();
                 if ( ! empty( $approval['publish_at'] ) ) {
                     if ( $approval['publish_at'] > time() ) { continue; }
-                } elseif ( (int) $now->format( 'G' ) < 10 || self::has_published_today( $now ) ) { continue; }
+                } elseif ( (int) $now->format( 'G' ) < 10 || ( $cadence_release ? self::published_today_count( $now ) >= Lunara_Journal_Cadence::DAILY_MAX : self::has_published_today( $now ) ) ) { continue; }
                 $result = self::deliver( $post->ID );
                 update_option( 'lunara_journal_delivery_result', array( 'at' => gmdate( 'c' ), 'id' => $post->ID, 'published' => ! is_wp_error( $result ), 'message' => is_wp_error( $result ) ? $result->get_error_message() : 'Publication confirmed by WordPress.' ), false );
-                if ( empty( $approval['publish_at'] ) && ! is_wp_error( $result ) ) { break; }
+                if ( empty( $approval['publish_at'] ) && ! is_wp_error( $result ) ) {
+                    if ( $cadence_release && self::published_today_count( $now ) < Lunara_Journal_Cadence::DAILY_MAX ) { continue; }
+                    break;
+                }
             }
         } );
     }
 
     private static function has_published_today( DateTimeImmutable $now ) {
-        return (bool) get_posts( array( 'post_type' => 'journal', 'post_status' => 'publish', 'posts_per_page' => 1, 'fields' => 'ids', 'date_query' => array( array( 'after' => $now->format( 'Y-m-d' ) . ' 00:00:00', 'before' => $now->format( 'Y-m-d' ) . ' 23:59:59', 'inclusive' => true ) ) ) );
+        return self::published_today_count( $now ) > 0;
+    }
+
+    /** Published Journal entries for the local day, capped at the cadence maximum. */
+    private static function published_today_count( DateTimeImmutable $now ) {
+        $posts = get_posts( array( 'post_type' => 'journal', 'post_status' => 'publish', 'posts_per_page' => 3, 'fields' => 'ids', 'date_query' => array( array( 'after' => $now->format( 'Y-m-d' ) . ' 00:00:00', 'before' => $now->format( 'Y-m-d' ) . ' 23:59:59', 'inclusive' => true ) ) ) );
+        return is_array( $posts ) ? count( $posts ) : 0;
     }
 
     private static function deliver( $post_id ) {

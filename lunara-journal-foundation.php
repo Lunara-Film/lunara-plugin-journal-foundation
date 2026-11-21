@@ -2,7 +2,7 @@
 /**
  * Plugin Name: LUNARA FILM Journal Foundation
  * Description: Registers the LUNARA FILM Journal content model, ACF fields, draft-first scope-gated bridge, authoritative Control Plane, and Fast Journal Desk for Dispatch and ChatGPT.
- * Version: 1.5.4
+ * Version: 1.5.5
  * Author: LUNARA FILM
  * Requires at least: 6.4
  * Requires PHP: 7.4
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 if ( ! defined( 'LUNARA_JOURNAL_FOUNDATION_VERSION' ) ) {
-    define( 'LUNARA_JOURNAL_FOUNDATION_VERSION', '1.5.4' );
+    define( 'LUNARA_JOURNAL_FOUNDATION_VERSION', '1.5.5' );
 }
 if ( ! defined( 'LUNARA_JOURNAL_FOUNDATION_FILE' ) ) {
     define( 'LUNARA_JOURNAL_FOUNDATION_FILE', __FILE__ );
@@ -40,6 +40,7 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/class-lunara-journal-fast-d
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-lunara-journal-desk-api.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-lunara-journal-story-wire.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-lunara-journal-publishing.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-lunara-journal-cadence.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-lunara-journal-desk-rewriter.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-lunara-journal-desk-app.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-lunara-journal-automation.php';
@@ -3010,6 +3011,7 @@ Lunara_Journal_Fast_Desk::bootstrap();
 Lunara_Journal_Desk_API::bootstrap();
 Lunara_Journal_Story_Wire::bootstrap();
 Lunara_Journal_Publishing::bootstrap();
+Lunara_Journal_Cadence::bootstrap();
 Lunara_Journal_Desk_Rewriter::bootstrap();
 Lunara_Journal_Desk_App::bootstrap();
 Lunara_Journal_Automation::bootstrap();
